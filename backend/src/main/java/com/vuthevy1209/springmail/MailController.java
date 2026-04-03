@@ -1,0 +1,22 @@
+package com.vuthevy1209.springmail;
+
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import java.io.IOException;
+import java.util.List;
+
+@RestController
+public class MailController {
+
+    private final GmailService gmailService;
+
+    public MailController(GmailService gmailService) {
+        this.gmailService = gmailService;
+    }
+
+    @GetMapping("/get-emails")
+    public List<EmailResponse> getEmails(OAuth2AuthenticationToken authentication) throws IOException {
+        return gmailService.getRecentEmails(authentication);
+    }
+}

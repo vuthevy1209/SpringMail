@@ -1,3 +1,15 @@
 spring:
   application:
     name: SpringMail
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: "276376065810-ma1ph51eg8a6fa0lka4kbpgvk01hssvr.apps.googleusercontent.com"
+            client-secret: "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"
+            scope:
+              - openid
+              - profile
+              - email
+              - https://www.googleapis.com/auth/gmail.readonly
