@@ -1,5 +1,7 @@
-package com.vuthevy1209.springmail;
+package com.vuthevy1209.springmail.controller;
 
+import com.vuthevy1209.springmail.dto.response.EmailResponse;
+import com.vuthevy1209.springmail.service.GmailService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
