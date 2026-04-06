@@ -2,223 +2,182 @@ import React, { useState } from 'react';
 import { Sparkles, Reply, ListChecks, Send, X, Paperclip, FileText } from 'lucide-react';
 
 export default function ReaderComposer({ selectedEmailId, emails = [] }) {
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [draftContent, setDraftContent] = useState('');
+	const [composerOpen, setComposerOpen] = useState(false);
+	const [isGenerating, setIsGenerating] = useState(false);
+	const [draftContent, setDraftContent] = useState('');
 
-  const email = emails.find(e => e.id === selectedEmailId);
+	const email = emails.find(e => e.id === selectedEmailId);
 
-  if (!email) {
-    return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--canvas-gray)' }}>
-        <div style={{ textAlign: 'center', color: 'var(--muted-steel)' }}>
-          <Sparkles size={32} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-          <p>Select an email to read</p>
-        </div>
-      </div>
-    );
-  }
+	if (!email) {
+		return (
+			<div className="flex-1 flex items-center justify-center bg-canvas-gray">
+				<div className="text-center text-muted-steel">
+					<Sparkles size={32} className="mx-auto mb-4 opacity-50" />
+					<p>Select an email to read</p>
+				</div>
+			</div>
+		);
+	}
 
-  const handleDraftReply = () => {
-    setComposerOpen(true);
-    setIsGenerating(true);
-    // Simulating LLM generation time
-    setTimeout(() => {
-      setIsGenerating(false);
-      setDraftContent("Thank you for sending this over.\n\nI will review the attached documents with the team and get back to you by early next week. Let's touch base again on Wednesday.\n\nBest,\nSpringMail User");
-    }, 2000);
-  };
+	const handleDraftReply = () => {
+		setComposerOpen(true);
+		setIsGenerating(true);
+		setTimeout(() => {
+			setIsGenerating(false);
+			setDraftContent("Thank you for sending this over.\n\nI will review the attached documents with the team and get back to you by early next week. Let's touch base again on Wednesday.\n\nBest,\nSpringMail User");
+		}, 2000);
+	};
 
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--canvas-gray)', overflow: 'hidden' }}>
-      
-      {/* LLM Actions Toolbar */}
-      <div style={{ 
-        padding: '16px 24px', 
-        borderBottom: '1px solid var(--whisper-border)',
-        display: 'flex',
-        gap: '12px',
-        backgroundColor: 'var(--pure-surface)'
-      }}>
-        <button className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Sparkles size={16} style={{ color: 'var(--emerald-accent)' }} />
-          Summarize
-        </button>
-        <button className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ListChecks size={16} />
-          Extract Action Items
-        </button>
-        <div style={{ flex: 1 }} />
-        <button 
-          className="btn-primary" 
-          onClick={handleDraftReply}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-        >
-          <Reply size={16} />
-          Draft Reply
-        </button>
-      </div>
+	return (
+		<div className="flex-1 flex flex-col h-screen bg-canvas-gray overflow-hidden">
 
-      {/* Reading Pane */}
-      <div style={{ flex: 1, padding: '32px 48px', overflowY: 'auto' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h1 style={{ fontSize: '24px', color: 'var(--charcoal-ink)', marginBottom: '24px' }}>
-            {email.subject}
-          </h1>
+			{/* LLM Actions Toolbar */}
+			<div className="px-6 py-4 border-b border-whisper/50 flex gap-3 bg-pure-surface">
+				<button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors">
+					<Sparkles size={16} className="text-emerald-accent" />
+					Summarize
+				</button>
+				<button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors">
+					<ListChecks size={16} />
+					Extract Action Items
+				</button>
+				<div className="flex-1" />
+				<button
+					onClick={handleDraftReply}
+					className="flex items-center gap-2 bg-emerald-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-hover transition-colors"
+				>
+					<Reply size={16} />
+					Draft Reply
+				</button>
+			</div>
 
-          {/* Sender Info */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ 
-                width: '40px', 
-                height: '40px', 
-                flexShrink: 0
-              }}>
-                <img 
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(email.senderName || 'Unknown')}&background=random&color=fff&rounded=true&bold=true`} 
-                  alt={email.senderName} 
-                  style={{ width: '100%', height: '100%' }} 
-                />
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, color: 'var(--charcoal-ink)' }}>
-                  {email.senderName || (email.from && email.from.includes('<') ? email.from.split('<')[0].trim() : email.from)}
-                </div>
-                <div style={{ fontSize: '13px', color: 'var(--muted-steel)' }}>
-                  {email.from && email.from.includes('<') ? '<' + email.from.split('<')[1] : ''}
-                </div>
-              </div>
-            </div>
-            <div style={{ color: 'var(--muted-steel)', fontSize: '14px' }}>
-              {email.date ? new Date(email.date).toLocaleString() : ''}
-            </div>
-          </div>
+			{/* Reading Pane */}
+			<div className="flex-1 px-12 py-8 overflow-y-auto">
+				<div className="max-w-[800px] mx-auto">
+					<h1 className="text-2xl text-charcoal-ink mb-6">
+						{email.subject}
+					</h1>
 
-          {/* Email Body */}
-          <div 
-            style={{ 
-              color: 'var(--charcoal-ink)', 
-              fontSize: '15px', 
-              lineHeight: 1.6,
-              wordWrap: 'break-word',
-              overflowWrap: 'anywhere'
-            }}
-            dangerouslySetInnerHTML={{ __html: email.content }}
-          />
+					{/* Sender Info */}
+					<div className="flex justify-between items-center mb-8">
+						<div className="flex items-center gap-3">
+							<div className="w-10 h-10 shrink-0">
+								<img
+									src={`https://ui-avatars.com/api/?name=${encodeURIComponent(email.senderName || 'Unknown')}&background=random&color=fff&rounded=true&bold=true`}
+									alt={email.senderName}
+									className="w-full h-full rounded-full"
+								/>
+							</div>
+							<div>
+								<div className="font-semibold text-charcoal-ink">
+									{email.senderName || (email.from && email.from.includes('<') ? email.from.split('<')[0].trim() : email.from)}
+								</div>
+								<div className="text-[13px] text-muted-steel">
+									{email.from && email.from.includes('<') ? '<' + email.from.split('<')[1] : ''}
+								</div>
+							</div>
+						</div>
+						<div className="text-muted-steel text-sm">
+							{email.date ? new Date(email.date).toLocaleString() : ''}
+						</div>
+					</div>
 
-          {/* Attachments */}
-          {email.attachments && email.attachments.length > 0 && (
-            <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--whisper-border)' }}>
-              <div style={{ fontWeight: 600, color: 'var(--charcoal-ink)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Paperclip size={16} />
-                {email.attachments.length} Attachments
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                {email.attachments.map((att, idx) => (
-                  <div key={idx} style={{ 
-                    display: 'flex', alignItems: 'center', gap: '8px', 
-                    padding: '8px 12px', border: '1px solid var(--whisper-border)', 
-                    borderRadius: '8px', backgroundColor: 'var(--pure-surface)',
-                    fontSize: '13px', color: 'var(--charcoal-ink)',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                  }}>
-                    <FileText size={16} style={{ color: 'var(--emerald-accent)' }} />
-                    <span style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={att}>{att}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+					{/* Email Body */}
+					<div
+						className="text-charcoal-ink text-[15px] leading-relaxed break-words"
+						dangerouslySetInnerHTML={{ __html: email.content }}
+					/>
 
-      {/* LLM Composer Pane */}
-      {composerOpen && (
-        <div style={{ 
-          height: '40vh', 
-          borderTop: '1px solid var(--whisper-border)',
-          backgroundColor: 'var(--pure-surface)',
-          padding: '24px 32px',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 -4px 20px rgba(0,0,0,0.03)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--emerald-accent)', fontWeight: 600, fontSize: '14px' }}>
-              <Sparkles size={16} />
-              LLM Draft
-            </div>
-            <button onClick={() => setComposerOpen(false)} style={{ color: 'var(--muted-steel)' }}>
-              <X size={20} />
-            </button>
-          </div>
+					{/* Attachments */}
+					{email.attachments && email.attachments.length > 0 && (
+						<div className="mt-8 pt-6 border-t border-whisper/50">
+							<div className="font-semibold text-charcoal-ink mb-4 flex items-center gap-2">
+								<Paperclip size={16} />
+								{email.attachments.length} Attachments
+							</div>
+							<div className="flex flex-wrap gap-3">
+								{email.attachments.map((att, idx) => (
+									<div
+										key={idx}
+										className="flex items-center gap-2 px-3 py-2 border border-whisper/50 rounded-lg bg-pure-surface text-[13px] text-charcoal-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+									>
+										<FileText size={16} className="text-emerald-accent" />
+										<span className="max-w-[200px] truncate" title={att}>{att}</span>
+									</div>
+								))}
+							</div>
+						</div>
+					)}
+				</div>
+			</div>
 
-          {isGenerating ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ height: '12px', width: '90%', backgroundColor: 'var(--canvas-gray)', borderRadius: '4px', animation: 'pulse 1.5s infinite' }} />
-              <div style={{ height: '12px', width: '100%', backgroundColor: 'var(--canvas-gray)', borderRadius: '4px', animation: 'pulse 1.5s infinite 0.2s' }} />
-              <div style={{ height: '12px', width: '80%', backgroundColor: 'var(--canvas-gray)', borderRadius: '4px', animation: 'pulse 1.5s infinite 0.4s' }} />
-            </div>
-          ) : (
-            <>
-              <textarea 
-                value={draftContent}
-                onChange={(e) => setDraftContent(e.target.value)}
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  outline: 'none',
-                  resize: 'none',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '15px',
-                  lineHeight: 1.6,
-                  color: 'var(--charcoal-ink)',
-                  marginBottom: '16px'
-                }}
-              />
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--whisper-border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', borderRadius: 'var(--round-full)', padding: '8px 20px' }}>
-                    <Send size={14} style={{ marginRight: '4px' }} />
-                    Send
-                  </button>
-                  <div style={{ display: 'flex', gap: '12px', color: 'var(--muted-steel)' }}>
-                    <button style={{ color: 'inherit' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-                    <button style={{ color: 'inherit' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
-                    <button style={{ color: 'inherit' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></button>
-                    <button style={{ color: 'inherit' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button className="btn-outline" onClick={() => setComposerOpen(false)} style={{ border: 'none', background: 'transparent' }}>Discard</button>
-                  <button style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    color: 'var(--emerald-accent)',
-                    fontWeight: 600,
-                    fontSize: '13px',
-                    padding: '6px 12px',
-                    backgroundColor: 'var(--canvas-gray)',
-                    borderRadius: 'var(--round-full)'
-                  }}>
-                    <Sparkles size={14} />
-                    Refine with AI
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+			{/* LLM Composer Pane */}
+			{composerOpen && (
+				<div className="h-[40vh] border-t border-whisper/50 bg-pure-surface px-8 py-6 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
 
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.5; }
-          50% { opacity: 1; }
-        }
-      `}</style>
-    </div>
-  );
+					{/* Composer Header */}
+					<div className="flex justify-between items-center mb-4">
+						<div className="flex items-center gap-2 text-emerald-accent font-semibold text-sm">
+							<Sparkles size={16} />
+							LLM Draft
+						</div>
+						<button onClick={() => setComposerOpen(false)} className="text-muted-steel">
+							<X size={20} />
+						</button>
+					</div>
+
+					{isGenerating ? (
+						<div className="flex-1 flex flex-col gap-3">
+							<div className="h-3 w-[90%] bg-canvas-gray rounded animate-pulse" />
+							<div className="h-3 w-full bg-canvas-gray rounded animate-pulse [animation-delay:0.2s]" />
+							<div className="h-3 w-[80%] bg-canvas-gray rounded animate-pulse [animation-delay:0.4s]" />
+						</div>
+					) : (
+						<>
+							<textarea
+								value={draftContent}
+								onChange={(e) => setDraftContent(e.target.value)}
+								className="flex-1 border-none outline-none resize-none font-sans text-[15px] leading-relaxed text-charcoal-ink mb-4 bg-transparent"
+							/>
+
+							<div className="flex justify-between items-center pt-3 border-t border-whisper/50">
+								<div className="flex items-center gap-4">
+									<button className="flex items-center gap-2 bg-emerald-accent text-white font-semibold px-5 py-2 rounded-full hover:bg-emerald-hover transition-colors">
+										<Send size={14} className="mr-1" />
+										Send
+									</button>
+									<div className="flex gap-3 text-muted-steel">
+										<button className="text-inherit bg-transparent border-none p-0 cursor-pointer">
+											<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+										</button>
+										<button className="text-inherit bg-transparent border-none p-0 cursor-pointer">
+											<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+										</button>
+										<button className="text-inherit bg-transparent border-none p-0 cursor-pointer">
+											<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" x2="9.01" y1="9" y2="9" /><line x1="15" x2="15.01" y1="9" y2="9" /></svg>
+										</button>
+										<button className="text-inherit bg-transparent border-none p-0 cursor-pointer">
+											<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
+										</button>
+									</div>
+								</div>
+								<div className="flex gap-3">
+									<button
+										className="border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-transparent font-medium hover:bg-canvas-gray transition-colors"
+										onClick={() => setComposerOpen(false)}
+									>
+										Discard
+									</button>
+									<button className="flex items-center gap-2 text-emerald-accent font-semibold text-[13px] px-3 py-1.5 bg-canvas-gray rounded-full">
+										<Sparkles size={14} />
+										Refine with AI
+									</button>
+								</div>
+							</div>
+						</>
+					)}
+				</div>
+			)}
+		</div>
+	);
 }

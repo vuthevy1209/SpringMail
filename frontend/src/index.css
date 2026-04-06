@@ -1,83 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-:root {
-  --canvas-gray: #F9FAFB;
-  --pure-surface: #FFFFFF;
-  --charcoal-ink: #18181B;
-  --muted-steel: #71717A;
-  --whisper-border: rgba(226, 232, 240, 0.5);
-  --emerald-accent: #10B981;
-  --emerald-hover: #0ca16d;
-  
-  --font-display: 'Manrope', sans-serif;
-  --font-body: 'Manrope', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  /* Spacing and rounding */
-  --round-8: 8px;
-  --round-full: 9999px;
-}
+@layer base {
+	h1, h2, h3, h4, h5, h6 {
+		font-weight: 700;
+		letter-spacing: -0.02em;
+	}
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+	a {
+		color: inherit;
+		text-decoration: none;
+	}
 
-body {
-  font-family: var(--font-body);
-  background-color: var(--canvas-gray);
-  color: var(--charcoal-ink);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+	button {
+		transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+	}
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button {
-  font-family: var(--font-body);
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Spring physics feel */
-}
-
-button:active {
-  transform: translateY(1px);
-}
-
-/* Base button style */
-.btn-primary {
-  background-color: var(--emerald-accent);
-  color: white;
-  padding: 8px 16px;
-  border-radius: var(--round-8);
-  font-weight: 600;
-}
-
-.btn-primary:hover {
-  background-color: var(--emerald-hover);
-}
-
-.btn-outline {
-  border: 1px solid var(--whisper-border);
-  color: var(--charcoal-ink);
-  padding: 8px 16px;
-  border-radius: var(--round-8);
-  background: var(--pure-surface);
-  font-weight: 500;
-}
-
-.btn-outline:hover {
-  background: var(--canvas-gray);
+	button:active {
+		transform: translateY(1px);
+	}
 }
