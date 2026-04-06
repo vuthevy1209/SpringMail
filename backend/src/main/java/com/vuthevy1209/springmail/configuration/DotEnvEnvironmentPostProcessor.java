@@ -1,6 +1,6 @@
 package com.vuthevy1209.springmail.configuration;
 
-import org.springframework.boot.env.EnvironmentPostProcessor;
+import org.springframework.boot.EnvironmentPostProcessor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.logging.DeferredLog;
 import org.springframework.context.ApplicationEvent;

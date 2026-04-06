@@ -1,2 +1,2 @@
-org.springframework.boot.env.EnvironmentPostProcessor=com.vuthevy1209.springmail.configuration.DotEnvEnvironmentPostProcessor
+org.springframework.boot.EnvironmentPostProcessor=com.vuthevy1209.springmail.configuration.DotEnvEnvironmentPostProcessor
 org.springframework.context.ApplicationListener=com.vuthevy1209.springmail.configuration.DotEnvEnvironmentPostProcessor

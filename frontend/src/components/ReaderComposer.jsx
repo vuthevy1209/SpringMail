@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { mockEmails } from '../data/mockData';
-import { Sparkles, Reply, ListChecks, Send, X } from 'lucide-react';
+import { Sparkles, Reply, ListChecks, Send, X, Paperclip, FileText } from 'lucide-react';
 
-export default function ReaderComposer({ selectedEmailId }) {
+export default function ReaderComposer({ selectedEmailId, emails = [] }) {
   const [composerOpen, setComposerOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [draftContent, setDraftContent] = useState('');
 
-  const email = mockEmails.find(e => e.id === selectedEmailId);
+  const email = emails.find(e => e.id === selectedEmailId);
 
   if (!email) {
     return (
@@ -73,36 +72,63 @@ export default function ReaderComposer({ selectedEmailId }) {
               <div style={{ 
                 width: '40px', 
                 height: '40px', 
-                borderRadius: '50%', 
-                backgroundColor: 'var(--emerald-accent)', 
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 600,
-                fontSize: '16px'
+                flexShrink: 0
               }}>
-                {email.sender.charAt(0)}
+                <img 
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(email.senderName || 'Unknown')}&background=random&color=fff&rounded=true&bold=true`} 
+                  alt={email.senderName} 
+                  style={{ width: '100%', height: '100%' }} 
+                />
               </div>
               <div>
-                <div style={{ fontWeight: 600, color: 'var(--charcoal-ink)' }}>{email.sender}</div>
-                <div style={{ fontSize: '13px', color: 'var(--muted-steel)' }}>{email.senderEmail}</div>
+                <div style={{ fontWeight: 600, color: 'var(--charcoal-ink)' }}>
+                  {email.senderName || (email.from && email.from.includes('<') ? email.from.split('<')[0].trim() : email.from)}
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--muted-steel)' }}>
+                  {email.from && email.from.includes('<') ? '<' + email.from.split('<')[1] : ''}
+                </div>
               </div>
             </div>
             <div style={{ color: 'var(--muted-steel)', fontSize: '14px' }}>
-              {email.timestamp}
+              {email.date ? new Date(email.date).toLocaleString() : ''}
             </div>
           </div>
 
           {/* Email Body */}
-          <div style={{ 
-            color: 'var(--charcoal-ink)', 
-            fontSize: '15px', 
-            lineHeight: 1.6,
-            whiteSpace: 'pre-wrap'
-          }}>
-            {email.body}
-          </div>
+          <div 
+            style={{ 
+              color: 'var(--charcoal-ink)', 
+              fontSize: '15px', 
+              lineHeight: 1.6,
+              wordWrap: 'break-word',
+              overflowWrap: 'anywhere'
+            }}
+            dangerouslySetInnerHTML={{ __html: email.content }}
+          />
+
+          {/* Attachments */}
+          {email.attachments && email.attachments.length > 0 && (
+            <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--whisper-border)' }}>
+              <div style={{ fontWeight: 600, color: 'var(--charcoal-ink)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Paperclip size={16} />
+                {email.attachments.length} Attachments
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                {email.attachments.map((att, idx) => (
+                  <div key={idx} style={{ 
+                    display: 'flex', alignItems: 'center', gap: '8px', 
+                    padding: '8px 12px', border: '1px solid var(--whisper-border)', 
+                    borderRadius: '8px', backgroundColor: 'var(--pure-surface)',
+                    fontSize: '13px', color: 'var(--charcoal-ink)',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}>
+                    <FileText size={16} style={{ color: 'var(--emerald-accent)' }} />
+                    <span style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={att}>{att}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
