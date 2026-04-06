@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import Sidebar from '../Sidebar';
+import Sidebar from './Sidebar';
 import ComposeModal from '../ComposeModal';
 
 export default function MainLayout() {
