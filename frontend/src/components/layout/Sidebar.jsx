@@ -1,21 +1,28 @@
-import { Inbox, Send, FileText, Trash2, Sparkles, Settings, Mail } from 'lucide-react';
+import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Inbox, Send, FileText, Trash2, Settings, Mail } from 'lucide-react';
 
 const iconMap = {
     Inbox: Inbox,
     Send: Send,
     FileText: FileText,
     Trash2: Trash2,
-    Sparkles: Sparkles,
 };
 
 export const folders = [
-    { id: 'inbox', name: 'Inbox', icon: 'Inbox', count: 12 },
-    { id: 'sent', name: 'Sent', icon: 'Send', count: 0 },
-    { id: 'drafts', name: 'Drafts', icon: 'FileText', count: 3 },
-    { id: 'trash', name: 'Trash', icon: 'Trash2', count: 0 },
+    { id: 'inbox',  name: 'Inbox',  icon: 'Inbox',    count: 12 },
+    { id: 'sent',   name: 'Sent',   icon: 'Send',     count: 0  },
+    { id: 'drafts', name: 'Drafts', icon: 'FileText', count: 3  },
+    { id: 'trash',  name: 'Trash',  icon: 'Trash2',   count: 0  },
 ];
 
-export default function Sidebar({ onCompose }) {
+export default function Sidebar() {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // Active folder = the first path segment, e.g. "/inbox" → "inbox"
+    const activeFolder = location.pathname.replace('/', '').split('/')[0] || 'inbox';
+
     return (
         <div className="w-[240px] bg-canvas-gray border-r border-whisper/50 flex flex-col h-screen px-4 py-6">
 
@@ -27,24 +34,16 @@ export default function Sidebar({ onCompose }) {
                 <span className="font-bold tracking-tight text-lg">SpringMail</span>
             </div>
 
-            {/* Compose Button */}
-            <button
-                onClick={onCompose}
-                className="flex items-center gap-3 p-3 rounded-lg mb-6 bg-emerald-accent text-white font-semibold shadow-[0_4px_12px_rgba(16,185,129,0.2)] hover:bg-emerald-hover transition-colors"
-            >
-                <Sparkles size={18} />
-                Compose
-            </button>
-
             {/* Folders */}
             <div className="flex flex-col gap-1 flex-1">
                 {folders.map(folder => {
                     const Icon = iconMap[folder.icon];
-                    const isActive = folder.id === 'inbox';
+                    const isActive = activeFolder === folder.id;
 
                     return (
                         <button
                             key={folder.id}
+                            onClick={() => navigate(`/${folder.id}`)}
                             className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all ${isActive
                                     ? 'bg-pure-surface text-charcoal-ink font-semibold shadow-sm border-whisper/50'
                                     : 'bg-transparent text-muted-steel font-medium border-transparent hover:bg-white/60'
@@ -82,3 +81,4 @@ export default function Sidebar({ onCompose }) {
         </div>
     );
 }
+

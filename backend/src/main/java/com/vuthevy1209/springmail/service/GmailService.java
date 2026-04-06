@@ -8,6 +8,7 @@ import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.MessagePart;
 import com.google.api.services.gmail.model.MessagePartHeader;
 import com.vuthevy1209.springmail.dto.response.EmailResponse;
+import com.vuthevy1209.springmail.dto.response.ThreadResponse;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -27,7 +28,7 @@ public class GmailService {
         this.authorizedClientService = authorizedClientService;
     }
 
-    public List<EmailResponse> getRecentEmails(OAuth2AuthenticationToken authentication, String category) throws IOException {
+    public List<ThreadResponse> getRecentEmails(OAuth2AuthenticationToken authentication, String folder, String category) throws IOException {
         // 1. Lấy Access Token từ Spring Security
         OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
                 authentication.getAuthorizedClientRegistrationId(),
@@ -43,51 +44,121 @@ public class GmailService {
                 .setApplicationName("SpringMail")
                 .build();
 
-        // 3. Lấy danh sách ID tin nhắn
-        ListMessagesResponse response = service.users().messages().list("me")
-                .setQ("category:" + category)
-                .setMaxResults(10L)
+        // 3. Xây dựng query phù hợp với từng loại folder & category
+        String query = buildQuery(folder, category);
+
+        // 4. Lấy danh sách ID thread
+        com.google.api.services.gmail.model.ListThreadsResponse response = service.users().threads().list("me")
+                .setQ(query)
+                .setMaxResults(15L)
                 .execute();
 
-        List<EmailResponse> emails = new ArrayList<>();
-        if (response.getMessages() != null) {
-            for (Message msg : response.getMessages()) {
-                // Lấy chi tiết toàn bộ message
-                Message fullMsg = service.users().messages().get("me", msg.getId()).execute();
-                
-                String from = "";
-                String subject = "";
-                String date = "";
-                
-                // Trích xuất Headers
-                if (fullMsg.getPayload().getHeaders() != null) {
-                    for (MessagePartHeader header : fullMsg.getPayload().getHeaders()) {
-                        switch (header.getName()) {
-                            case "From" -> from = header.getValue();
-                            case "Subject" -> subject = header.getValue();
-                            case "Date" -> date = header.getValue();
+        List<ThreadResponse> threadResponses = new ArrayList<>();
+        if (response.getThreads() != null) {
+            for (com.google.api.services.gmail.model.Thread threadSnippet : response.getThreads()) {
+                // Lấy chi tiết toàn bộ thread bao gồm các messages
+                com.google.api.services.gmail.model.Thread fullThread = service.users().threads().get("me", threadSnippet.getId()).execute();
+
+                List<EmailResponse> messages = new ArrayList<>();
+                boolean threadUnread = false;
+                String threadSubject = "";
+                String latestDate = "";
+                String latestSenderName = "";
+                Long threadInternalDate = 0L;
+
+                if (fullThread.getMessages() != null) {
+                    List<Message> threadMessages = new ArrayList<>(fullThread.getMessages());
+                    // Đảm bảo tin nhắn được sắp xếp chuẩn theo thời gian (cũ -> mới)
+                    threadMessages.sort((m1, m2) -> Long.compare(m1.getInternalDate(), m2.getInternalDate()));
+
+                    for (Message fullMsg : threadMessages) {
+                        String from = "";
+                        String to = "";
+                        String subject = "";
+                        String date = "";
+                        Long internalDate = fullMsg.getInternalDate();
+
+                        // Trích xuất Headers cho message hiện tại
+                        if (fullMsg.getPayload().getHeaders() != null) {
+                            for (MessagePartHeader header : fullMsg.getPayload().getHeaders()) {
+                                switch (header.getName()) {
+                                    case "From"    -> from    = header.getValue();
+                                    case "To"      -> to      = header.getValue();
+                                    case "Subject" -> subject = header.getValue();
+                                    case "Date"    -> date    = header.getValue();
+                                }
+                            }
                         }
+
+                        String senderName = extractSenderName(from);
+                        String senderEmail = extractSenderEmail(from);
+
+                        // Trích xuất trạng thái Chưa đọc (Unread)
+                        boolean unread = fullMsg.getLabelIds() != null && fullMsg.getLabelIds().contains("UNREAD");
+                        if (unread) threadUnread = true;
+
+                        // Trích xuất file đính kèm
+                        List<String> attachments = new ArrayList<>();
+                        if (fullMsg.getPayload() != null) {
+                            extractAttachments(fullMsg.getPayload(), attachments);
+                        }
+
+                        // Trích xuất Content (Body)
+                        String content = getMessageBody(fullMsg.getPayload());
+
+                        messages.add(new EmailResponse(
+                                fullMsg.getId(), from, to, senderName, senderEmail, subject, date,
+                                fullMsg.getSnippet(), content, unread, internalDate, attachments
+                        ));
+                    }
+
+                    if (!messages.isEmpty()) {
+                        EmailResponse firstMsg = messages.get(0);
+                        EmailResponse lastMsg = messages.get(messages.size() - 1); // newest message
+
+                        threadSubject = firstMsg.subject() != null && !firstMsg.subject().isEmpty() ? firstMsg.subject() : "(No Subject)";
+                        latestDate = lastMsg.date();
+                        latestSenderName = lastMsg.senderName();
+                        threadInternalDate = lastMsg.internalDate();
                     }
                 }
 
-                String senderName = extractSenderName(from);
-                
-                // Trích xuất trạng thái Chưa đọc (Unread)
-                boolean unread = fullMsg.getLabelIds() != null && fullMsg.getLabelIds().contains("UNREAD");
-                
-                // Trích xuất file đính kèm
-                List<String> attachments = new ArrayList<>();
-                if (fullMsg.getPayload() != null) {
-                    extractAttachments(fullMsg.getPayload(), attachments);
-                }
-
-                // Trích xuất Content (Body)
-                String content = getMessageBody(fullMsg.getPayload());
-
-                emails.add(new EmailResponse(fullMsg.getId(), from, senderName, subject, date, fullMsg.getSnippet(), content, unread, attachments));
+                threadResponses.add(new ThreadResponse(
+                        fullThread.getId(),
+                        threadSubject,
+                        fullThread.getSnippet(), // Snippet tóm tắt từ Google cho toàn thread
+                        latestDate,
+                        latestSenderName,
+                        threadUnread,
+                        messages.size(),
+                        threadInternalDate,
+                        messages
+                ));
             }
         }
-        return emails;
+        
+        // Sắp xếp các chuỗi hội thoại: Chuỗi nào có tin nhắn mới nhất sẽ được đưa lên đầu (Mới nhất -> Cũ nhất)
+        threadResponses.sort((t1, t2) -> Long.compare(t2.internalDate(), t1.internalDate()));
+        
+        return threadResponses;
+    }
+
+    /**
+     * Xây dựng Gmail query string phù hợp với folder và category được yêu cầu.
+     */
+    private String buildQuery(String folder, String category) {
+        String base = switch (folder.toLowerCase()) {
+            case "sent"   -> "in:sent";
+            case "drafts" -> "in:drafts";
+            case "trash"  -> "in:trash";
+            default       -> "in:inbox";
+        };
+
+        if (category != null && !category.isEmpty()) {
+            return base + " category:" + category.toLowerCase();
+        }
+
+        return base;
     }
 
     /**
@@ -133,6 +204,14 @@ public class GmailService {
         if (from == null) return "";
         if (from.contains("<")) {
             return from.substring(0, from.indexOf("<")).replace("\"", "").trim();
+        }
+        return from;
+    }
+
+    private String extractSenderEmail(String from) {
+        if (from == null) return "";
+        if (from.contains("<") && from.contains(">")) {
+            return from.substring(from.indexOf("<") + 1, from.indexOf(">")).trim();
         }
         return from;
     }

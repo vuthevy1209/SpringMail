@@ -1,6 +1,6 @@
 package com.vuthevy1209.springmail.controller;
 
-import com.vuthevy1209.springmail.dto.response.EmailResponse;
+import com.vuthevy1209.springmail.dto.response.ThreadResponse;
 import com.vuthevy1209.springmail.service.GmailService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,10 +19,11 @@ public class MailController {
     }
 
     @GetMapping("/get-emails")
-    public List<EmailResponse> getEmails(
+    public List<ThreadResponse> getEmails(
             OAuth2AuthenticationToken authentication,
-            @RequestParam(defaultValue = "primary") String category
+            @RequestParam(defaultValue = "inbox") String folder,
+            @RequestParam(required = false) String category
     ) throws IOException {
-        return gmailService.getRecentEmails(authentication, category);
+        return gmailService.getRecentEmails(authentication, folder, category);
     }
 }
