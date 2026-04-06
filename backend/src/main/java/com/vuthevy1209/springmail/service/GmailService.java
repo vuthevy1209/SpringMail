@@ -10,8 +10,6 @@ import com.google.api.services.gmail.model.MessagePartHeader;
 import com.vuthevy1209.springmail.dto.response.EmailResponse;
 import com.vuthevy1209.springmail.dto.response.ThreadResponse;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -22,17 +20,10 @@ import java.util.List;
 @Service
 public class GmailService {
 
-    private final OAuth2AuthorizedClientService authorizedClientService;
-
-    public GmailService(OAuth2AuthorizedClientService authorizedClientService) {
-        this.authorizedClientService = authorizedClientService;
+    public GmailService() {
     }
 
-    public List<ThreadResponse> getRecentEmails(OAuth2AuthenticationToken authentication, String folder, String category) throws IOException {
-        // 1. Lấy Access Token từ Spring Security
-        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
-                authentication.getAuthorizedClientRegistrationId(),
-                authentication.getName());
+    public List<ThreadResponse> getRecentEmails(OAuth2AuthorizedClient client, String folder, String category) throws IOException {
 
         String accessToken = client.getAccessToken().getTokenValue();
 

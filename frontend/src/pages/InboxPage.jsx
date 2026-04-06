@@ -13,26 +13,32 @@ export default function InboxPage() {
 	const [activeTab, setActiveTab] = useState('primary');
 
 	useEffect(() => {
-		api.get('/api/auth/me')
-			.then(res => {
+		const checkAuth = async () => {
+			try {
+				await api.get('/auth/me');
 				setIsAuthenticated(true);
-			})
-			.catch(err => {
+			} catch (err) {
 				setIsAuthenticated(false);
-			});
+			}
+		};
+		checkAuth();
 	}, []);
 
 	useEffect(() => {
-		if (isAuthenticated) {
-			setIsLoadingEmails(true);
-			api.get(`/get-emails?category=${activeTab}`)
-				.then(emailRes => {
+		const fetchEmails = async () => {
+			if (isAuthenticated) {
+				setIsLoadingEmails(true);
+				try {
+					const emailRes = await api.get(`/get-emails?category=${activeTab}`);
 					setEmails(emailRes.data);
-				})
-				.finally(() => {
+				} catch (error) {
+					console.error("Failed to fetch emails:", error);
+				} finally {
 					setIsLoadingEmails(false);
-				});
-		}
+				}
+			}
+		};
+		fetchEmails();
 	}, [isAuthenticated, activeTab]);
 
 	if (isAuthenticated === null) {
