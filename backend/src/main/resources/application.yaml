@@ -22,3 +22,8 @@ spring:
     redis:
       host: localhost
       port: 6379
+  mongodb:
+    database: SpringMail
+    host: localhost
+    port: 27017
+    password: 123456
