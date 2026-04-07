@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.util.List;
 
+import com.vuthevy1209.springmail.dto.response.ApiResponse;
+
 @RestController
 public class MailController {
 
@@ -20,11 +22,13 @@ public class MailController {
     }
 
     @GetMapping("/get-emails")
-    public List<ThreadResponse> getEmails(
+    public ApiResponse<List<ThreadResponse>> getEmails(
             @RegisteredOAuth2AuthorizedClient("google") OAuth2AuthorizedClient authorizedClient,
             @RequestParam(defaultValue = "inbox") String folder,
             @RequestParam(required = false) String category
     ) throws IOException {
-        return gmailService.getRecentEmails(authorizedClient, folder, category);
+        return ApiResponse.<List<ThreadResponse>>builder()
+                .result(gmailService.getRecentEmails(authorizedClient, folder, category))
+                .build();
     }
 }

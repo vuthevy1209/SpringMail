@@ -13,11 +13,12 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
-import org.springframework.http.HttpStatus;
+
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import com.vuthevy1209.springmail.security.CustomOidcUserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -27,7 +28,7 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomOidcUserService customOidcUserService) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomOidcUserService customOidcUserService, AuthenticationEntryPoint authenticationEntryPoint) throws Exception {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
@@ -42,16 +43,13 @@ public class SecurityConfig {
                                 .oidcUserService(customOidcUserService))
                         .defaultSuccessUrl("http://localhost:5173/inbox", true))
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(authenticationEntryPoint()));
+                        .authenticationEntryPoint(authenticationEntryPoint));
         return http.build();
     }
 
     @Bean
     public AuthenticationEntryPoint authenticationEntryPoint() {
-        return (request, response, authException) -> {
-            response.setStatus(HttpStatus.UNAUTHORIZED.value());
-            response.getWriter().write("Unauthenticated");
-        };
+        return new CustomAuthenticationEntryPoint(new ObjectMapper());
     }
 
     @Bean

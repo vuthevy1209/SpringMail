@@ -7,7 +7,7 @@ class MailService {
             apiUrl += `&category=${category}`;
         }
         const response = await api.get(apiUrl);
-        return response.data;
+        return response.data.result;
     }
 }
 
