@@ -1,59 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Inbox, Send, FileText, Trash2, Settings, Mail, LogOut, X } from 'lucide-react';
-import authService from '../../service/authService';
+import { useAuth } from '../../context/AuthContext';
 
 const iconMap = {
-    Inbox: Inbox,
-    Send: Send,
-    FileText: FileText,
-    Trash2: Trash2,
+	Inbox: Inbox,
+	Send: Send,
+	FileText: FileText,
+	Trash2: Trash2,
 };
 
 export const folders = [
-    { id: 'inbox', name: 'Inbox', icon: 'Inbox', count: 12 },
-    { id: 'sent', name: 'Sent', icon: 'Send', count: 0 },
-    { id: 'drafts', name: 'Drafts', icon: 'FileText', count: 3 },
-    { id: 'trash', name: 'Trash', icon: 'Trash2', count: 0 },
+	{ id: 'inbox', name: 'Inbox', icon: 'Inbox', count: 12 },
+	{ id: 'sent', name: 'Sent', icon: 'Send', count: 0 },
+	{ id: 'drafts', name: 'Drafts', icon: 'FileText', count: 3 },
+	{ id: 'trash', name: 'Trash', icon: 'Trash2', count: 0 },
 ];
 
 export default function Sidebar() {
-    const location = useLocation();
-    const navigate = useNavigate();
-    const [user, setUser] = useState(null);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+	const location = useLocation();
+	const navigate = useNavigate();
+	const { user, logout } = useAuth(); // Global user state from context
+	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-    useEffect(() => {
-        const loadUser = () => {
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-                try {
-                    setUser(JSON.parse(storedUser));
-                } catch (e) {
-                    console.error("Failed to parse user from localStorage", e);
-                }
-            } else {
-                setUser(null);
-            }
-        };
-
-        loadUser();
-        window.addEventListener('user-profile-updated', loadUser);
-
-        return () => {
-            window.removeEventListener('user-profile-updated', loadUser);
-        };
-    }, []);
-
-    const handleLogout = async () => {
-        try {
-            await authService.logout();
-        } catch (error) {
-            console.error('Logout failed', error);
-        } finally {
-            navigate('/login');
-        }
-    };
+	const handleLogout = async () => {
+		try {
+			await logout();
+			setIsSettingsOpen(false);
+		} catch (error) {
+			console.error('Logout failed', error);
+		}
+	};
 
     // Active folder = the first path segment, e.g. "/inbox" → "inbox"
     const activeFolder = location.pathname.replace('/', '').split('/')[0] || 'inbox';

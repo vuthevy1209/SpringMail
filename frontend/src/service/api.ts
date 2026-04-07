@@ -24,10 +24,10 @@ api.interceptors.response.use(
     (error) => {
         if (error.response) {
             const status = error.response.status;
-            if (status === 401) {
-                console.warn('Unauthorized request, session might have expired.');
-                window.location.href = '/login';
+            if (status === 401 && error.config.url?.includes('/auth/me')) {
+                return Promise.reject(error);
             }
+
             toast.error(error.response.data?.message || `An error occurred (${status})`);
         } else {
             toast.error(error.message || 'Network error occurred');

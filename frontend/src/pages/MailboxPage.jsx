@@ -13,7 +13,6 @@ import EmailReader from '../components/EmailReader';
  *   /trash   → folder="trash"
  */
 export default function MailboxPage({ folder }) {
-	const [isAuthenticated, setIsAuthenticated] = useState(null);
 	const [threads, setThreads] = useState([]);
 	const [isLoadingThreads, setIsLoadingThreads] = useState(false);
 	const [selectedThreadId, setSelectedThreadId] = useState(null);
@@ -21,22 +20,8 @@ export default function MailboxPage({ folder }) {
 	// For inbox only — which category tab is active
 	const [activeTab, setActiveTab] = useState('primary');
 
+	// Fetch emails whenever folder changes or inbox tab changes
 	useEffect(() => {
-		const checkAuth = async () => {
-			try {
-				await authService.checkAuthStatus();
-				setIsAuthenticated(true);
-			} catch {
-				setIsAuthenticated(false);
-			}
-		};
-		checkAuth();
-	}, []);
-
-	// Fetch emails whenever auth resolves, folder changes, or inbox tab changes
-	useEffect(() => {
-		if (!isAuthenticated) return;
-
 		const fetchLatestEmails = async () => {
 			setThreads([]);
 			setSelectedThreadId(null);
@@ -51,19 +36,7 @@ export default function MailboxPage({ folder }) {
 		};
 
 		fetchLatestEmails();
-	}, [isAuthenticated, folder, activeTab]);
-
-	if (isAuthenticated === null) {
-		return (
-			<div className="flex flex-1 justify-center items-center h-screen bg-canvas-gray text-muted-steel">
-				Loading session details...
-			</div>
-		);
-	}
-
-	if (isAuthenticated === false) {
-		return <Navigate to="/login" replace />;
-	}
+	}, [folder, activeTab]);
 
 	return (
 		<>

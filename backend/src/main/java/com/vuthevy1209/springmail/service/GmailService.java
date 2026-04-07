@@ -3,10 +3,8 @@ package com.vuthevy1209.springmail.service;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.gmail.Gmail;
-import com.google.api.services.gmail.model.ListMessagesResponse;
-import com.google.api.services.gmail.model.Message;
-import com.google.api.services.gmail.model.MessagePart;
-import com.google.api.services.gmail.model.MessagePartHeader;
+import com.google.api.services.gmail.model.*;
+import com.google.api.services.gmail.model.Thread;
 import com.vuthevy1209.springmail.dto.response.EmailResponse;
 import com.vuthevy1209.springmail.dto.response.ThreadResponse;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -39,16 +37,16 @@ public class GmailService {
         String query = buildQuery(folder, category);
 
         // 4. Lấy danh sách ID thread
-        com.google.api.services.gmail.model.ListThreadsResponse response = service.users().threads().list("me")
+        ListThreadsResponse response = service.users().threads().list("me")
                 .setQ(query)
                 .setMaxResults(15L)
                 .execute();
 
         List<ThreadResponse> threadResponses = new ArrayList<>();
         if (response.getThreads() != null) {
-            for (com.google.api.services.gmail.model.Thread threadSnippet : response.getThreads()) {
+            for (Thread threadSnippet : response.getThreads()) {
                 // Lấy chi tiết toàn bộ thread bao gồm các messages
-                com.google.api.services.gmail.model.Thread fullThread = service.users().threads().get("me", threadSnippet.getId()).execute();
+                Thread fullThread = service.users().threads().get("me", threadSnippet.getId()).execute();
 
                 List<EmailResponse> messages = new ArrayList<>();
                 boolean threadUnread = false;
