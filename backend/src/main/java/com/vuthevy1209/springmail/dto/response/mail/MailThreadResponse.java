@@ -1,8 +1,8 @@
-package com.vuthevy1209.springmail.dto.response;
+package com.vuthevy1209.springmail.dto.response.mail;
 
 import java.util.List;
 
-public record ThreadResponse(
+public record MailThreadResponse(
         String id,
         String subject,
         String snippet,
@@ -11,5 +11,5 @@ public record ThreadResponse(
         boolean unread,
         int messageCount,
         Long internalDate,
-        List<EmailResponse> messages
+        List<MailResponse> messages
 ) {}

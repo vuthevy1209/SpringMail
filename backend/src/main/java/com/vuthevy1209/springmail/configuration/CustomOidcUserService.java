@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.security;
+package com.vuthevy1209.springmail.configuration;
 
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
@@ -21,8 +21,8 @@ public class CustomOidcUserService extends OidcUserService {
 
         // Filter and rename attributes as requested
         Map<String, Object> filteredAttributes = new HashMap<>();
-        filteredAttributes.put("google-id", attributes.get("sub"));
-        filteredAttributes.put("given_name", attributes.get("given_name"));
+        filteredAttributes.put("googleId", attributes.get("sub"));
+        filteredAttributes.put("givenName", attributes.get("given_name"));
         filteredAttributes.put("email", attributes.get("email"));
         filteredAttributes.put("avatar", attributes.get("picture"));
 

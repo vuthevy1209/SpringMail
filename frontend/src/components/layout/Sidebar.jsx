@@ -119,7 +119,7 @@ export default function Sidebar() {
                         referrerPolicy="no-referrer"
                     />
                     <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
-                        <span className="text-[15px] font-bold text-charcoal-ink truncate leading-tight">{user.name || user.given_name}</span>
+                        <span className="text-[15px] font-bold text-charcoal-ink truncate leading-tight">{user.name || user.givenName}</span>
                         <span className="text-xs text-muted-steel truncate">{user.email}</span>
                     </div>
 
@@ -163,7 +163,7 @@ export default function Sidebar() {
                                     referrerPolicy="no-referrer"
                                 />
                                 <div>
-                                    <h4 className="font-bold text-charcoal-ink">{user.name || user.given_name}</h4>
+                                    <h4 className="font-bold text-charcoal-ink">{user.name || user.givenName}</h4>
                                     <p className="text-sm text-muted-steel">{user.email}</p>
                                 </div>
                             </div>

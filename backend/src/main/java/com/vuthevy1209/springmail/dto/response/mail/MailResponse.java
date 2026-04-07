@@ -1,8 +1,8 @@
-package com.vuthevy1209.springmail.dto.response;
+package com.vuthevy1209.springmail.dto.response.mail;
 
 import java.util.List;
 
-public record EmailResponse(
+public record MailResponse(
         String id,
         String from,
         String to,

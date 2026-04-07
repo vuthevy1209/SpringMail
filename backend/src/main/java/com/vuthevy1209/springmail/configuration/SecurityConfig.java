@@ -16,7 +16,6 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
-import com.vuthevy1209.springmail.security.CustomOidcUserService;
 
 @Configuration
 @EnableWebSecurity

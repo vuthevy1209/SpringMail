@@ -1,0 +1,50 @@
+package com.vuthevy1209.springmail.service.auth;
+
+import java.util.Map;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.stereotype.Service;
+
+import com.vuthevy1209.springmail.dto.response.auth.UserResponse;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+
+@Service
+@Slf4j
+public class AuthServiceImpl implements AuthService {
+
+    @Override
+    public UserResponse getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof OAuth2User user)) {
+            return null;
+        }
+
+        Map<String, Object> attributes = user.getAttributes();
+
+        return UserResponse.builder()
+                .googleId((String) attributes.get("googleId"))
+                .givenName((String) attributes.get("givenName"))
+                .email((String) attributes.get("email"))
+                .avatar((String) attributes.get("avatar"))
+                .build();
+    }
+
+    @Override
+    public void logout(HttpServletRequest request) throws ServletException {
+        try {
+            request.logout();
+            if (request.getSession(false) != null) {
+                request.getSession(false).invalidate();
+            }
+            SecurityContextHolder.clearContext();
+        } catch (ServletException e) {
+            log.error("Error during logout", e);
+            throw e;
+        }
+    }
+}

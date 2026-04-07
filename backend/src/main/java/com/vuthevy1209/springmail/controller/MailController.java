@@ -1,7 +1,7 @@
 package com.vuthevy1209.springmail.controller;
 
-import com.vuthevy1209.springmail.dto.response.ThreadResponse;
-import com.vuthevy1209.springmail.service.GmailService;
+import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
+import com.vuthevy1209.springmail.service.gmail.MailService;
 import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,23 +12,22 @@ import java.util.List;
 
 import com.vuthevy1209.springmail.dto.response.ApiResponse;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
+@RequiredArgsConstructor
 public class MailController {
 
-    private final GmailService gmailService;
-
-    public MailController(GmailService gmailService) {
-        this.gmailService = gmailService;
-    }
+    private final MailService mailService;
 
     @GetMapping("/get-emails")
-    public ApiResponse<List<ThreadResponse>> getEmails(
+    public ApiResponse<List<MailThreadResponse>> getEmails(
             @RegisteredOAuth2AuthorizedClient("google") OAuth2AuthorizedClient authorizedClient,
             @RequestParam(defaultValue = "inbox") String folder,
             @RequestParam(required = false) String category
     ) throws IOException {
-        return ApiResponse.<List<ThreadResponse>>builder()
-                .result(gmailService.getRecentEmails(authorizedClient, folder, category))
+        return ApiResponse.<List<MailThreadResponse>>builder()
+                .result(mailService.getRecentEmails(authorizedClient, folder, category))
                 .build();
     }
 }

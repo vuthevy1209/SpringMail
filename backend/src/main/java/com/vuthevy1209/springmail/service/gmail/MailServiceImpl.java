@@ -1,12 +1,12 @@
-package com.vuthevy1209.springmail.service;
+package com.vuthevy1209.springmail.service.gmail;
 
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.*;
 import com.google.api.services.gmail.model.Thread;
-import com.vuthevy1209.springmail.dto.response.EmailResponse;
-import com.vuthevy1209.springmail.dto.response.ThreadResponse;
+import com.vuthevy1209.springmail.dto.response.mail.MailResponse;
+import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.stereotype.Service;
 
@@ -16,12 +16,10 @@ import java.util.Base64;
 import java.util.List;
 
 @Service
-public class GmailService {
+public class MailServiceImpl implements MailService {
 
-    public GmailService() {
-    }
-
-    public List<ThreadResponse> getRecentEmails(OAuth2AuthorizedClient client, String folder, String category) throws IOException {
+    @Override
+    public List<MailThreadResponse> getRecentEmails(OAuth2AuthorizedClient client, String folder, String category) throws IOException {
 
         String accessToken = client.getAccessToken().getTokenValue();
         String refreshToken = client.getRefreshToken() != null ? client.getRefreshToken().getTokenValue() : null;
@@ -46,13 +44,13 @@ public class GmailService {
                 .setMaxResults(15L)
                 .execute();
 
-        List<ThreadResponse> threadResponses = new ArrayList<>();
+        List<MailThreadResponse> threadResponses = new ArrayList<>();
         if (response.getThreads() != null) {
             for (Thread threadSnippet : response.getThreads()) {
                 // Lấy chi tiết toàn bộ thread bao gồm các messages
                 Thread fullThread = service.users().threads().get("me", threadSnippet.getId()).execute();
 
-                List<EmailResponse> messages = new ArrayList<>();
+                List<MailResponse> messages = new ArrayList<>();
                 boolean threadUnread = false;
                 String threadSubject = "";
                 String latestDate = "";
@@ -99,15 +97,15 @@ public class GmailService {
                         // Trích xuất Content (Body)
                         String content = getMessageBody(fullMsg.getPayload());
 
-                        messages.add(new EmailResponse(
+                        messages.add(new MailResponse(
                                 fullMsg.getId(), from, to, senderName, senderEmail, subject, date,
                                 fullMsg.getSnippet(), content, unread, internalDate, attachments
                         ));
                     }
 
                     if (!messages.isEmpty()) {
-                        EmailResponse firstMsg = messages.get(0);
-                        EmailResponse lastMsg = messages.get(messages.size() - 1); // newest message
+                        MailResponse firstMsg = messages.get(0);
+                        MailResponse lastMsg = messages.get(messages.size() - 1); // newest message
 
                         threadSubject = firstMsg.subject() != null && !firstMsg.subject().isEmpty() ? firstMsg.subject() : "(No Subject)";
                         latestDate = lastMsg.date();
@@ -116,7 +114,7 @@ public class GmailService {
                     }
                 }
 
-                threadResponses.add(new ThreadResponse(
+                threadResponses.add(new MailThreadResponse(
                         fullThread.getId(),
                         threadSubject,
                         fullThread.getSnippet(), // Snippet tóm tắt từ Google cho toàn thread
