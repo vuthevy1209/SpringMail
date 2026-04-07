@@ -1,9 +1,6 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import authService from '../service/authService';
 import mailService from '../service/mailService';
-import InboxList from '../components/InboxList';
-import ReaderComposer from '../components/ReaderComposer';
+import InboxList from '../components/emails/InboxList';
+import EmailReader from '../components/emails/EmailReader'; // Assuming rename from ReaderComposer
 import { useState, useEffect } from 'react';
 
 export default function InboxPage() {
@@ -37,9 +34,9 @@ export default function InboxPage() {
 				activeTab={activeTab}
 				onTabChange={setActiveTab}
 			/>
-			<ReaderComposer
+			<EmailReader
 				emails={emails}
-				selectedEmailId={selectedEmailId}
+				selectedThreadId={selectedEmailId}
 			/>
 		</>
 	);

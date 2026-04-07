@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import authService from '../service/authService';
 import mailService from '../service/mailService';
-import InboxList from '../components/InboxList';
-import EmailReader from '../components/EmailReader';
+import InboxList from '../components/emails/InboxList';
+import EmailReader from '../components/emails/EmailReader';
 
 /**
  * Generic mailbox page shared by all folder routes:
