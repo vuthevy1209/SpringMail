@@ -25,9 +25,9 @@ public class AuthController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         OAuth2User user = (OAuth2User) authentication.getPrincipal();
 
-        System.out.println("User attributes: " + user.getAttributes());
-        System.out.println("User authorities: " + user.getAuthorities());
-        System.out.println("User name: " + user.getName());
+//        System.out.println("User attributes: " + user.getAttributes());
+//        System.out.println("User authorities: " + user.getAuthorities());
+//        System.out.println("User name: " + user.getName());
         
         return ApiResponse.<Map<String, Object>>builder()
                 .result(user.getAttributes())

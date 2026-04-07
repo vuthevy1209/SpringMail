@@ -24,6 +24,10 @@ public class GmailService {
     public List<ThreadResponse> getRecentEmails(OAuth2AuthorizedClient client, String folder, String category) throws IOException {
 
         String accessToken = client.getAccessToken().getTokenValue();
+        String refreshToken = client.getRefreshToken() != null ? client.getRefreshToken().getTokenValue() : null;
+
+        System.out.println("Access Token: " + accessToken);
+        System.out.println("Refresh Token: " + refreshToken);
 
         // 2. Khởi tạo Gmail Service
         Gmail service = new Gmail.Builder(
