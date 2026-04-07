@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import com.vuthevy1209.springmail.security.CustomOidcUserService;
 
 import java.util.List;
 
@@ -26,7 +27,7 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomOidcUserService customOidcUserService) throws Exception {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
@@ -37,9 +38,8 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         .authorizedClientRepository(authorizedClientRepository())
-                        // Sau khi user login thành công bằng Google,
-                        // Spring Security sẽ tự động redirect về URL này.
-                        // React Router sẽ bắt được và render ra trang tương ứng.
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .oidcUserService(customOidcUserService))
                         .defaultSuccessUrl("http://localhost:5173/inbox", true))
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(authenticationEntryPoint()));
