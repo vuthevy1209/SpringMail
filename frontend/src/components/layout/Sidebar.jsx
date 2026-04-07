@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Inbox, Send, FileText, Trash2, Settings, Mail, LogOut, X } from 'lucide-react';
+import { Inbox, Send, FileText, Trash2, Settings, Mail, LogOut, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const iconMap = {
@@ -22,6 +22,7 @@ export default function Sidebar() {
 	const navigate = useNavigate();
 	const { user, logout } = useAuth(); // Global user state from context
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+	const [isCollapsed, setIsCollapsed] = useState(false);
 
 	const handleLogout = async () => {
 		try {
@@ -36,14 +37,27 @@ export default function Sidebar() {
     const activeFolder = location.pathname.replace('/', '').split('/')[0] || 'inbox';
 
     return (
-        <div className="w-[240px] bg-canvas-gray border-r border-whisper/50 flex flex-col h-screen px-4 py-6">
+        <div className={`relative bg-canvas-gray border-r border-whisper/50 flex flex-col h-screen py-6 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-[80px] px-2.5' : 'w-[260px] px-5'}`}>
+            
+            {/* Collapse Toggle Button */}
+            <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="absolute -right-4 top-1/2 -translate-y-1/2 bg-pure-surface border border-whisper rounded-full w-8 h-8 flex items-center justify-center shadow-md hover:bg-canvas-gray text-muted-steel hover:text-charcoal-ink transition-colors z-30 cursor-pointer active:scale-90"
+                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+                {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
 
             {/* Brand */}
-            <div className="flex items-center gap-3 mb-6 px-2">
-                <div className="bg-emerald-accent text-white p-1.5 rounded-lg flex items-center">
-                    <Mail size={18} />
+            <div className={`flex items-center mb-8 overflow-hidden transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'gap-4 px-2'}`}>
+                <div className="bg-emerald-accent text-white p-2 rounded-xl flex items-center shrink-0 shadow-sm">
+                    <Mail size={22} />
                 </div>
-                <span className="font-bold tracking-tight text-lg">SpringMail</span>
+                {!isCollapsed && (
+                    <span className="font-bold tracking-tight text-xl transition-all duration-300 whitespace-nowrap overflow-hidden text-charcoal-ink">
+                        SpringMail
+                    </span>
+                )}
             </div>
 
             {/* Folders */}
@@ -56,23 +70,34 @@ export default function Sidebar() {
                         <button
                             key={folder.id}
                             onClick={() => navigate(`/${folder.id}`)}
-                            className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all ${isActive
-                                ? 'bg-pure-surface text-charcoal-ink font-semibold shadow-sm border-whisper/50'
+                            className={`flex items-center ${isCollapsed ? 'justify-center p-0 h-12 w-12 mx-auto' : 'justify-between px-4 py-3 w-full'} rounded-xl border transition-all ${isActive
+                                ? 'bg-pure-surface text-charcoal-ink font-bold shadow-sm border-whisper/50'
                                 : 'bg-transparent text-muted-steel font-medium border-transparent hover:bg-white/60'
                                 }`}
                         >
-                            <div className="flex items-center gap-3">
-                                <Icon
-                                    size={18}
-                                    className={isActive ? 'text-emerald-accent' : ''}
-                                />
-                                <span className="text-sm">{folder.name}</span>
+                            <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-4 overflow-hidden'}`}>
+                                <div className="relative">
+                                    <Icon
+                                        size={22}
+                                        className={`shrink-0 ${isActive ? 'text-emerald-accent' : ''}`}
+                                    />
+                                    {isCollapsed && folder.count > 0 && (
+                                        <span className="absolute -top-2 -right-2 bg-emerald-accent text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-canvas-gray shadow-sm">
+                                            {folder.count > 99 ? '99+' : folder.count}
+                                        </span>
+                                    )}
+                                </div>
+                                {!isCollapsed && (
+                                    <span className="text-[15px] transition-all duration-300 whitespace-nowrap overflow-hidden">
+                                        {folder.name}
+                                    </span>
+                                )}
                             </div>
-                            {folder.count > 0 && (
+                            {!isCollapsed && folder.count > 0 && (
                                 <span
-                                    className={`text-xs px-2 py-0.5 rounded-xl font-semibold ${isActive
-                                        ? 'bg-emerald-accent text-white'
-                                        : 'bg-transparent text-muted-steel'
+                                    className={`text-xs px-2.5 py-1 rounded-xl font-bold ${isActive
+                                        ? 'bg-emerald-accent text-white shadow-sm'
+                                        : 'bg-whisper/40 text-muted-steel'
                                         }`}
                                 >
                                     {folder.count}
@@ -85,27 +110,30 @@ export default function Sidebar() {
 
             {/* User Profile */}
             {user && (
-                <div className="mt-auto mb-2 pt-4 border-t border-whisper/50 flex items-center gap-3 px-2">
+                <div className={`mt-auto mb-2 pt-5 border-t border-whisper/50 flex items-center ${isCollapsed ? 'justify-center' : 'gap-4 px-1'} overflow-hidden transition-all duration-300`}>
                     <img
                         src={user.avatar}
                         alt="User avatar"
-                        className="w-9 h-9 rounded-full object-cover border border-whisper shrink-0"
+                        onClick={isCollapsed ? () => setIsSettingsOpen(true) : undefined}
+                        className={`w-11 h-11 rounded-full object-cover border border-whisper shrink-0 transition-transform shadow-sm ${isCollapsed ? 'cursor-pointer hover:scale-110 active:scale-95' : ''}`}
                         referrerPolicy="no-referrer"
                     />
-                    <div className="flex flex-col overflow-hidden w-full">
-                        <span className="text-[13px] font-semibold text-charcoal-ink truncate">{user.name || user.given_name}</span>
+                    <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
+                        <span className="text-[15px] font-bold text-charcoal-ink truncate leading-tight">{user.name || user.given_name}</span>
                         <span className="text-xs text-muted-steel truncate">{user.email}</span>
                     </div>
 
                     {/* Settings */}
-                    <div>
-                        <button 
-                            onClick={() => setIsSettingsOpen(true)}
-                            className="flex items-center gap-3 p-1.5 text-muted-steel rounded-lg hover:bg-white/80 transition-colors"
-                        >
-                            <Settings size={18} />
-                        </button>
-                    </div>
+                    {!isCollapsed && (
+                        <div>
+                            <button 
+                                onClick={() => setIsSettingsOpen(true)}
+                                className="flex items-center gap-3 p-1.5 text-muted-steel rounded-lg hover:bg-white/80 transition-colors"
+                            >
+                                <Settings size={22} />
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 
