@@ -1,12 +1,66 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 
 /**
  * Isolated component to render email HTML content within an iframe.
  * Prevents style leakage and provides a sandbox for the content.
  */
-export default function EmailBody({ content }) {
+export default function EmailBody({ content, messageId, attachments = [] }) {
     const iframeRef = useRef(null);
-    const [height, setHeight] = useState('auto');
+    const [height, setHeight] = useState('60px'); // Set a small initial height
+
+    // Process the content to resolve cid: images
+    const processedContent = useMemo(() => {
+        if (!content) return '';
+        
+        let newContent = content;
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
+        // Tìm tất cả các src="cid:..."
+        const cidRegex = /src="cid:([^"]+)"/g;
+        newContent = newContent.replace(cidRegex, (match, cid) => {
+            // Tìm attachment tương ứng với cid này
+            const attachment = attachments.find(att => att.contentId === cid);
+            if (attachment) {
+                return `src="${baseUrl}/get-attachment?messageId=${messageId}&attachmentId=${attachment.id}"`;
+            }
+            return match; // Trả về nguyên bản nếu không tìm thấy
+        });
+
+        // Inject CSS để tránh ảnh quá to làm vỡ layout
+        const styleTag = `
+            <style>
+                img {
+                    max-width: 100% !important;
+                    height: auto !important;
+                    display: block;
+                }
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                    line-height: 1.5;
+                    color: #333;
+                    margin: 0;
+                    padding: 0;
+                    overflow: hidden; /* Prevent iframe scrollbars */
+                    word-wrap: break-word;
+                }
+                .email-container {
+                    padding: 1px 0; /* Avoid margin collapsing */
+                }
+            </style>
+        `;
+
+        // Wrap in a container for better height calculation
+        return `
+            <html>
+                <head>${styleTag}</head>
+                <body>
+                    <div class="email-container">
+                        ${newContent}
+                    </div>
+                </body>
+            </html>
+        `;
+    }, [content, messageId, attachments]);
 
     useEffect(() => {
         const iframe = iframeRef.current;
@@ -14,47 +68,62 @@ export default function EmailBody({ content }) {
 
         const handleResize = () => {
             try {
-                if (iframe.contentWindow && iframe.contentDocument && iframe.contentDocument.body) {
-                    const doc = iframe.contentDocument;
-                    // Reset margins on body to avoid extra spacing
-                    doc.body.style.margin = '0';
-                    doc.body.style.padding = '0';
+                const doc = iframe.contentDocument;
+                if (doc && doc.body) {
+                    // Use offsetHeight of the body or scrollHeight of the documentElement
+                    // documentElement.scrollHeight might be too large if there's padding/margin
+                    const body = doc.body;
+                    const html = doc.documentElement;
                     
-                    // Force a layout recalculation
-                    const newHeight = doc.documentElement.scrollHeight;
-                    setHeight(`${newHeight}px`);
+                    const newHeight = Math.max(
+                        body.scrollHeight, 
+                        body.offsetHeight, 
+                        html.offsetHeight, 
+                        html.scrollHeight
+                    );
+                    
+                    if (newHeight > 0) {
+                        setHeight(`${newHeight}px`);
+                    }
                 }
             } catch (err) {
-                console.error('Error resizing email iframe:', err);
+                // Ignore cross-origin errors (though srcDoc should be same-origin)
             }
         };
 
+        // Attach resize event to the window inside iframe if possible
+        if (iframe.contentWindow) {
+            iframe.contentWindow.addEventListener('resize', handleResize);
+        }
+
         iframe.onload = () => {
             handleResize();
-            setTimeout(handleResize, 100);
-            setTimeout(handleResize, 500);
-            setTimeout(handleResize, 2000);
+            // Multiple attempts as images or fonts might load later
+            setTimeout(handleResize, 50);
+            setTimeout(handleResize, 200);
+            setTimeout(handleResize, 1000);
         };
 
         let observer;
         try {
-            if (iframe.contentWindow && iframe.contentDocument && iframe.contentDocument.body) {
+            if (iframe.contentDocument && iframe.contentDocument.body) {
                 observer = new ResizeObserver(() => handleResize());
                 observer.observe(iframe.contentDocument.body);
             }
-        } catch (e) {
-            // Observer failed
-        }
+        } catch (e) { }
 
         return () => {
             if (observer) observer.disconnect();
+            if (iframe.contentWindow) {
+                iframe.contentWindow.removeEventListener('resize', handleResize);
+            }
         };
-    }, [content]);
+    }, [processedContent]);
 
     return (
         <iframe
             ref={iframeRef}
-            srcDoc={content}
+            srcDoc={processedContent}
             title="Email Content"
             style={{
                 width: '100%',
@@ -62,7 +131,7 @@ export default function EmailBody({ content }) {
                 overflow: 'hidden',
                 backgroundColor: 'transparent',
                 display: 'block',
-                height
+                height: height
             }}
             sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
             loading="lazy"

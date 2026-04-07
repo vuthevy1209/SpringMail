@@ -5,6 +5,7 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.*;
 import com.google.api.services.gmail.model.Thread;
+import com.vuthevy1209.springmail.dto.response.mail.MailAttachmentResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -21,11 +22,8 @@ public class MailServiceImpl implements MailService {
     @Override
     public List<MailThreadResponse> getRecentEmails(OAuth2AuthorizedClient client, String folder, String category) throws IOException {
 
+        // 1. Lấy Access Token từ OAuth2AuthorizedClient
         String accessToken = client.getAccessToken().getTokenValue();
-        String refreshToken = client.getRefreshToken() != null ? client.getRefreshToken().getTokenValue() : null;
-
-        System.out.println("Access Token: " + accessToken);
-        System.out.println("Refresh Token: " + refreshToken);
 
         // 2. Khởi tạo Gmail Service
         Gmail service = new Gmail.Builder(
@@ -89,7 +87,7 @@ public class MailServiceImpl implements MailService {
                         if (unread) threadUnread = true;
 
                         // Trích xuất file đính kèm
-                        List<String> attachments = new ArrayList<>();
+                        List<MailAttachmentResponse> attachments = new ArrayList<>();
                         if (fullMsg.getPayload() != null) {
                             extractAttachments(fullMsg.getPayload(), attachments);
                         }
@@ -207,14 +205,47 @@ public class MailServiceImpl implements MailService {
         return from;
     }
 
-    private void extractAttachments(MessagePart part, List<String> attachments) {
+    private void extractAttachments(MessagePart part, List<MailAttachmentResponse> attachments) {
         if (part.getFilename() != null && !part.getFilename().isEmpty()) {
-            attachments.add(part.getFilename());
+            String contentId = null;
+            if (part.getHeaders() != null) {
+                for (MessagePartHeader header : part.getHeaders()) {
+                    if (header.getName().equalsIgnoreCase("Content-ID")) {
+                        // Content-ID thường có dạng <id>, ta cần bỏ dấu <>
+                        contentId = header.getValue().replaceAll("[<>]", "");
+                        break;
+                    }
+                }
+            }
+            attachments.add(new MailAttachmentResponse(
+                    part.getBody().getAttachmentId(),
+                    part.getFilename(),
+                    part.getMimeType(),
+                    contentId
+            ));
         }
         if (part.getParts() != null) {
             for (MessagePart subPart : part.getParts()) {
                 extractAttachments(subPart, attachments);
             }
         }
+    }
+
+    @Override
+    public byte[] getAttachment(OAuth2AuthorizedClient client, String messageId, String attachmentId) throws IOException {
+        String accessToken = client.getAccessToken().getTokenValue();
+
+        Gmail service = new Gmail.Builder(
+                new NetHttpTransport(),
+                GsonFactory.getDefaultInstance(),
+                request -> request.getHeaders().setAuthorization("Bearer " + accessToken))
+                .setApplicationName("SpringMail")
+                .build();
+
+        MessagePartBody attachment = service.users().messages().attachments()
+                .get("me", messageId, attachmentId)
+                .execute();
+
+        return Base64.getUrlDecoder().decode(attachment.getData());
     }
 }

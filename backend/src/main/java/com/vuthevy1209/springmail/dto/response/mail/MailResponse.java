@@ -14,5 +14,5 @@ public record MailResponse(
         String content,
         boolean unread,
         Long internalDate,
-        List<String> attachments
+        List<MailAttachmentResponse> attachments
 ) {}

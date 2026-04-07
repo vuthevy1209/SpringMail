@@ -69,25 +69,34 @@ export default function EmailReader({ selectedThreadId, threads = [] }) {
 
                                 {/* Isolated Email Body */}
                                 <div className="text-charcoal-ink text-[15px] leading-relaxed break-words">
-                                    <EmailBody content={email.content} />
+                                    <EmailBody 
+                                        content={email.content} 
+                                        messageId={email.id}
+                                        attachments={email.attachments}
+                                    />
                                 </div>
 
                                 {/* Attachments */}
-                                {email.attachments && email.attachments.length > 0 && (
+                                {email.attachments && email.attachments.filter(att => !att.contentId).length > 0 && (
                                     <div className="mt-6 pt-4 border-t border-whisper/50">
                                         <div className="font-semibold text-charcoal-ink mb-3 flex items-center gap-2 text-sm">
                                             <Paperclip size={14} />
-                                            {email.attachments.length} Attachments
+                                            {email.attachments.filter(att => !att.contentId).length} Attachments
                                         </div>
                                         <div className="flex flex-wrap gap-2">
-                                            {email.attachments.map((att, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    className="flex items-center gap-2 px-3 py-2 border border-whisper/50 rounded-lg bg-canvas-gray text-[12px] text-charcoal-ink shadow-sm"
+                                            {email.attachments
+                                                .filter(att => !att.contentId)
+                                                .map((att) => (
+                                                <a
+                                                    key={att.id}
+                                                    href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/get-attachment?messageId=${email.id}&attachmentId=${att.id}&filename=${encodeURIComponent(att.filename)}&contentType=${encodeURIComponent(att.mimeType)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 px-3 py-2 border border-whisper/50 rounded-lg bg-canvas-gray text-[12px] text-charcoal-ink shadow-sm hover:bg-whisper/30 transition-colors"
                                                 >
                                                     <FileText size={14} className="text-emerald-accent" />
-                                                    <span className="max-w-[200px] truncate" title={att}>{att}</span>
-                                                </div>
+                                                    <span className="max-w-[200px] truncate" title={att.filename}>{att.filename}</span>
+                                                </a>
                                             ))}
                                         </div>
                                     </div>
