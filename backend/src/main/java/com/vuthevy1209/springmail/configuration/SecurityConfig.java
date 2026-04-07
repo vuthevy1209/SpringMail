@@ -11,6 +11,7 @@ import org.springframework.session.data.redis.config.annotation.web.http.EnableR
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
@@ -25,17 +26,16 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 @EnableRedisHttpSession(redisNamespace = "springmail:session", maxInactiveIntervalInSeconds = 3600) // 1 ngày
 public class SecurityConfig {
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http,
-            CustomOidcUserService customOidcUserService,
-            AuthenticationEntryPoint authenticationEntryPoint,
-            OAuth2AuthorizationRequestResolver authorizationRequestResolver
-    ) throws Exception {
+    private final CustomOidcUserService customOidcUserService;
+    private final AuthenticationEntryPoint authenticationEntryPoint;
+    private final OAuth2AuthorizationRequestResolver authorizationRequestResolver;
 
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
                 // Tắt CSRF vì frontend và backend nằm trên 2 domain khác nhau
@@ -60,7 +60,7 @@ public class SecurityConfig {
                         .defaultSuccessUrl("http://localhost:5173/inbox", true))
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(authenticationEntryPoint));
-                        
+
         return http.build();
     }
 
