@@ -7,9 +7,12 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.ServletException;
 import com.vuthevy1209.springmail.dto.response.ApiResponse;
 import java.util.Map;
 
@@ -28,6 +31,17 @@ public class AuthController {
         
         return ApiResponse.<Map<String, Object>>builder()
                 .result(user.getAttributes())
+                .build();
+    }
+
+    @PostMapping("/logout")
+    public ApiResponse<String> logout(HttpServletRequest request) throws ServletException {
+        request.logout();
+        if (request.getSession(false) != null) {
+            request.getSession(false).invalidate();
+        }
+        return ApiResponse.<String>builder()
+                .result("Logged out successfully")
                 .build();
     }
 }

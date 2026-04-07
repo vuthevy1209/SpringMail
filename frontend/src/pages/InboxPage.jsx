@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import api from '../service/api';
+import authService from '../service/authService';
+import mailService from '../service/mailService';
 import InboxList from '../components/InboxList';
 import ReaderComposer from '../components/ReaderComposer';
 import { useState, useEffect } from 'react';
@@ -15,7 +16,7 @@ export default function InboxPage() {
 	useEffect(() => {
 		const checkAuth = async () => {
 			try {
-				await api.get('/auth/me');
+				await authService.checkAuthStatus();
 				setIsAuthenticated(true);
 			} catch (err) {
 				setIsAuthenticated(false);
@@ -29,8 +30,8 @@ export default function InboxPage() {
 			if (isAuthenticated) {
 				setIsLoadingEmails(true);
 				try {
-					const emailRes = await api.get(`/get-emails?category=${activeTab}`);
-					setEmails(emailRes.data);
+					const data = await mailService.fetchEmails('inbox', activeTab);
+					setEmails(data);
 				} catch (error) {
 					console.error("Failed to fetch emails:", error);
 				} finally {
