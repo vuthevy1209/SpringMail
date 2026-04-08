@@ -1,28 +1,25 @@
 package com.vuthevy1209.springmail.service.mail;
 
-import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.*;
 import com.google.api.services.gmail.model.Thread;
-import com.vuthevy1209.springmail.configuration.GmailServiceFactory;
 import com.vuthevy1209.springmail.dto.response.mail.MailAttachmentResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
+import com.vuthevy1209.springmail.service.gmail.GmailClient;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class MailServiceImpl implements MailService {
 
-	private final GmailServiceFactory gmailServiceFactory;
-
-	public MailServiceImpl(GmailServiceFactory gmailServiceFactory) {
-		this.gmailServiceFactory = gmailServiceFactory;
-	}
-
+    private final GmailClient gmailClient;
 
 
     @Override
@@ -34,25 +31,17 @@ public class MailServiceImpl implements MailService {
             throw new IOException("Failed to authorize OAuth2 client or get access token");
         }
 
-        // 2. Khởi tạo Gmail Service qua Factory
-        Gmail service = gmailServiceFactory.build(accessToken);
-
-        // 3. Xây dựng query phù hợp với từng loại folder & category
+        // 2. Xây dựng query phù hợp với từng loại folder & category
         String query = buildQuery(folder, category);
 
-        // 4. Lấy danh sách ID thread
-        ListThreadsResponse response = service.users().threads().list("me")
-                .setQ(query)
-                .setMaxResults(20L)
-                .execute();
+        // 3. Lấy danh sách ID thread qua GmailClient
+        ListThreadsResponse response = gmailClient.listThreads(accessToken, query, 20L);
 
         List<MailThreadResponse> threadResponses = new ArrayList<>();
         if (response.getThreads() != null) {
             for (Thread threadSnippet : response.getThreads()) {
-                // CHỈ lấy metadata (headers), không lấy body để tối ưu tốc độ và dung lượng
-                Thread fullThread = service.users().threads().get("me", threadSnippet.getId())
-                        .setFormat("metadata")
-                        .execute();
+                // CHỈ lấy metadata (headers) qua GmailClient
+                Thread fullThread = gmailClient.getThread(accessToken, threadSnippet.getId(), "metadata", List.of("Subject", "Date", "From"));
 
                 String threadSubject = "";
                 String latestDate = "";
@@ -127,10 +116,8 @@ public class MailServiceImpl implements MailService {
             throw new IOException("Failed to authorize OAuth2 client or get access token");
         }
 
-        Gmail service = gmailServiceFactory.build(accessToken);
-
-        // Lấy FULL chi tiết thread bao gồm cả body
-        Thread fullThread = service.users().threads().get("me", threadId).execute();
+        // Lấy FULL chi tiết thread bao gồm cả body qua GmailClient
+        Thread fullThread = gmailClient.getThread(accessToken, threadId, "full", null);
 
         List<MailResponse> messages = new ArrayList<>();
         String threadSubject = "";
@@ -309,11 +296,7 @@ public class MailServiceImpl implements MailService {
             throw new IOException("Failed to authorize OAuth2 client or get access token");
         }
 
-        Gmail service = gmailServiceFactory.build(accessToken);
-
-        MessagePartBody attachment = service.users().messages().attachments()
-                .get("me", messageId, attachmentId)
-                .execute();
+        MessagePartBody attachment = gmailClient.getAttachment(accessToken, messageId, attachmentId);
 
         return Base64.getUrlDecoder().decode(attachment.getData());
     }

@@ -15,6 +15,11 @@ public class GlobalExceptionHandler {
     // Handle all uncategorized exceptions
     @ExceptionHandler(value = Exception.class)
     ResponseEntity<ApiResponse<?>> handlingRuntimeException(Exception exception, HttpServletRequest request) {
+        if (isBrokenPipe(exception)) {
+            log.warn("Broken pipe [{} {}]: Client disconnected prematurely.", request.getMethod(), request.getRequestURI());
+            return null;
+        }
+
         log.error("Exception [{} {}]: ", request.getMethod(), request.getRequestURI(), exception);
         ErrorCode errorCode = ErrorCode.UNCATEGORIZED_EXCEPTION;
         ApiResponse<?> apiResponse = ApiResponse.builder()
@@ -26,6 +31,15 @@ public class GlobalExceptionHandler {
                 .status(errorCode.getStatusCode())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(apiResponse);
+    }
+
+    private boolean isBrokenPipe(Throwable throwable) {
+        if (throwable == null) return false;
+        String message = throwable.getMessage();
+        if (message != null && (message.toLowerCase().contains("broken pipe") || message.toLowerCase().contains("connection reset by peer"))) {
+            return true;
+        }
+        return isBrokenPipe(throwable.getCause());
     }
 
     // Handle custom application exceptions
