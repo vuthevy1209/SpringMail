@@ -27,6 +27,7 @@ public class SecurityUtils {
                 .principal(authentication)
                 .build();
 
+        // Manager sẽ tự động thực hiện refresh token nếu cần thiết
         return authorizedClientManager.authorize(authorizeRequest);
     }
 

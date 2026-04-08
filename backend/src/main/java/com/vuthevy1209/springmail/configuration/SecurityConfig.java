@@ -84,20 +84,25 @@ public class SecurityConfig {
 
         return authorizationRequestResolver;
     }
+
     @Bean
     public OAuth2AuthorizedClientManager authorizedClientManager(
             ClientRegistrationRepository clientRegistrationRepository,
             OAuth2AuthorizedClientRepository authorizedClientRepository) {
 
+        // Định nghĩa các cơ chế ủy quyền được hỗ trợ
         OAuth2AuthorizedClientProvider authorizedClientProvider =
                 OAuth2AuthorizedClientProviderBuilder.builder()
-                        .authorizationCode()
-                        .refreshToken()
+                        .authorizationCode() // Hỗ trợ luồng đăng nhập bằng mã xác thực (lấy Token lần đầu)
+                        .refreshToken()      // Hỗ trợ tự động làm mới Access Token bằng Refresh Token
                         .build();
 
+        // Khởi tạo manager mặc định kết nối với Repository lưu trữ Token (thường là Session)
         DefaultOAuth2AuthorizedClientManager authorizedClientManager =
                 new DefaultOAuth2AuthorizedClientManager(
                         clientRegistrationRepository, authorizedClientRepository);
+
+        // Gắn bộ cung cấp logic xử lý Token vào manager
         authorizedClientManager.setAuthorizedClientProvider(authorizedClientProvider);
 
         return authorizedClientManager;

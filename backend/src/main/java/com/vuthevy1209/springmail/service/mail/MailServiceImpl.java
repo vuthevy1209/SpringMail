@@ -1,10 +1,9 @@
 package com.vuthevy1209.springmail.service.mail;
 
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.*;
 import com.google.api.services.gmail.model.Thread;
+import com.vuthevy1209.springmail.configuration.GmailServiceFactory;
 import com.vuthevy1209.springmail.dto.response.mail.MailAttachmentResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
@@ -18,6 +17,12 @@ import java.util.List;
 @Service
 public class MailServiceImpl implements MailService {
 
+	private final GmailServiceFactory gmailServiceFactory;
+
+	public MailServiceImpl(GmailServiceFactory gmailServiceFactory) {
+		this.gmailServiceFactory = gmailServiceFactory;
+	}
+
 
 
     @Override
@@ -29,13 +34,8 @@ public class MailServiceImpl implements MailService {
             throw new IOException("Failed to authorize OAuth2 client or get access token");
         }
 
-        // 2. Khởi tạo Gmail Service
-        Gmail service = new Gmail.Builder(
-                new NetHttpTransport(),
-                GsonFactory.getDefaultInstance(),
-                request -> request.getHeaders().setAuthorization("Bearer " + accessToken))
-                .setApplicationName("SpringMail")
-                .build();
+        // 2. Khởi tạo Gmail Service qua Factory
+        Gmail service = gmailServiceFactory.build(accessToken);
 
         // 3. Xây dựng query phù hợp với từng loại folder & category
         String query = buildQuery(folder, category);
@@ -127,12 +127,7 @@ public class MailServiceImpl implements MailService {
             throw new IOException("Failed to authorize OAuth2 client or get access token");
         }
 
-        Gmail service = new Gmail.Builder(
-                new NetHttpTransport(),
-                GsonFactory.getDefaultInstance(),
-                request -> request.getHeaders().setAuthorization("Bearer " + accessToken))
-                .setApplicationName("SpringMail")
-                .build();
+        Gmail service = gmailServiceFactory.build(accessToken);
 
         // Lấy FULL chi tiết thread bao gồm cả body
         Thread fullThread = service.users().threads().get("me", threadId).execute();
@@ -314,12 +309,7 @@ public class MailServiceImpl implements MailService {
             throw new IOException("Failed to authorize OAuth2 client or get access token");
         }
 
-        Gmail service = new Gmail.Builder(
-                new NetHttpTransport(),
-                GsonFactory.getDefaultInstance(),
-                request -> request.getHeaders().setAuthorization("Bearer " + accessToken))
-                .setApplicationName("SpringMail")
-                .build();
+        Gmail service = gmailServiceFactory.build(accessToken);
 
         MessagePartBody attachment = service.users().messages().attachments()
                 .get("me", messageId, attachmentId)

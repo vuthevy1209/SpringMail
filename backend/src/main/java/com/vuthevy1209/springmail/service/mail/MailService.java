@@ -7,6 +7,8 @@ import java.util.List;
 
 public interface MailService {
     List<MailThreadResponse> getRecentEmails(String folder, String category) throws IOException;
+
     MailThreadResponse getThreadDetails(String threadId) throws IOException;
+
     byte[] getAttachment(String messageId, String attachmentId) throws IOException;
 }
