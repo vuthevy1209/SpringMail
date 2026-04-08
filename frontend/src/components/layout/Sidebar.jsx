@@ -4,6 +4,8 @@ import { Inbox, Send, FileText, Trash2, Settings, LogOut, X, ChevronLeft, Chevro
 import { useAuth } from '../../context/AuthContext';
 import SpringIcon from '../../assets/spring-icon.svg';
 
+import { LAYOUT } from '../../constants/layout';
+
 const iconMap = {
 	Inbox: Inbox,
 	Send: Send,
@@ -38,7 +40,7 @@ export default function Sidebar() {
     const activeFolder = location.pathname.replace('/', '').split('/')[0] || 'inbox';
 
     return (
-        <div className={`relative bg-canvas-gray border-r border-whisper/50 flex flex-col h-screen py-6 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-[80px] px-2.5' : 'w-[260px] px-5'}`}>
+        <div className={`relative bg-canvas-gray ${LAYOUT.COLUMN_BORDER} flex flex-col h-screen py-6 transition-all duration-300 ease-in-out ${isCollapsed ? LAYOUT.SIDEBAR_COLLAPSED_WIDTH + ' px-2.5' : LAYOUT.SIDEBAR_WIDTH + ' px-5'}`}>
             
             {/* Collapse Toggle Button */}
             <button

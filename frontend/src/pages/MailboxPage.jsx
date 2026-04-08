@@ -24,6 +24,8 @@ export default function MailboxPage({ folder }) {
 
 	// Fetch emails whenever folder changes or inbox tab changes
 	useEffect(() => {
+		const controller = new AbortController();
+
 		const fetchLatestEmails = async () => {
 			setThreads([]);
 			setSelectedThreadId(null);
@@ -31,14 +33,25 @@ export default function MailboxPage({ folder }) {
 			setIsLoadingThreads(true);
 
 			try {
-				const data = await mailService.fetchEmails(folder, activeTab);
+				const data = await mailService.fetchEmails(folder, activeTab, controller.signal);
 				setThreads(data);
+			} catch (error) {
+				if (error.name === 'CanceledError' || error.name === 'AbortError' || error.message === 'canceled') {
+					return;
+				}
+				console.error("Failed to fetch emails:", error);
 			} finally {
-				setIsLoadingThreads(false);
+				if (!controller.signal.aborted) {
+					setIsLoadingThreads(false);
+				}
 			}
 		};
 
 		fetchLatestEmails();
+
+		return () => {
+			controller.abort();
+		};
 	}, [folder, activeTab]);
 
 	// Fetch thread detail when selectedThreadId changes
@@ -48,19 +61,30 @@ export default function MailboxPage({ folder }) {
 			return;
 		}
 
+		const controller = new AbortController();
+
 		const fetchDetail = async () => {
 			setIsLoadingDetail(true);
 			try {
-				const data = await mailService.fetchThreadDetail(selectedThreadId);
+				const data = await mailService.fetchThreadDetail(selectedThreadId, controller.signal);
 				setSelectedThreadData(data);
 			} catch (error) {
+				if (error.name === 'CanceledError' || error.name === 'AbortError' || error.message === 'canceled') {
+					return;
+				}
 				console.error("Failed to fetch thread detail:", error);
 			} finally {
-				setIsLoadingDetail(false);
+				if (!controller.signal.aborted) {
+					setIsLoadingDetail(false);
+				}
 			}
 		};
 
 		fetchDetail();
+
+		return () => {
+			controller.abort();
+		};
 	}, [selectedThreadId]);
 
 	return (

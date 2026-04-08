@@ -1,7 +1,7 @@
-import React from 'react';
 import { Search, Inbox, Users, Tag, Info } from 'lucide-react';
 import ThreadItem from './ThreadItem';
 import InboxListSkeleton from './InboxListSkeleton';
+import { LAYOUT } from '../../constants/layout';
 
 export default function InboxList({ 
     folder = 'inbox', 
@@ -27,7 +27,7 @@ export default function InboxList({
     ];
 
     return (
-        <div className="w-[380px] bg-pure-surface border-r border-whisper/50 flex flex-col h-screen">
+        <div className={`${LAYOUT.INBOX_LIST_WIDTH} bg-pure-surface ${LAYOUT.COLUMN_BORDER} flex flex-col h-screen`}>
 
             {/* Header & Search */}
             <div className="px-5 pt-6 pb-4 border-b border-whisper/50">

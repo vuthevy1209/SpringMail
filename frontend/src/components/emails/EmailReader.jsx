@@ -1,7 +1,7 @@
-import React from 'react';
 import { Sparkles, ListChecks, Paperclip, FileText } from 'lucide-react';
 import EmailBody from './EmailBody';
 import EmailReaderSkeleton from './EmailReaderSkeleton';
+import { LAYOUT } from '../../constants/layout';
 
 export default function EmailReader({ selectedThread, isLoading }) {
     if (isLoading) {
@@ -22,7 +22,7 @@ export default function EmailReader({ selectedThread, isLoading }) {
     const thread = selectedThread;
 
     return (
-        <div className="flex-1 flex flex-col h-screen bg-canvas-gray overflow-hidden">
+        <div className={LAYOUT.MAIN_CONTENT}>
 
             {/* LLM Actions Toolbar */}
             <div className="px-6 py-4 border-b border-whisper/50 flex gap-3 bg-pure-surface">
