@@ -39,89 +39,73 @@ public class MailServiceImpl implements MailService {
         // 4. Lấy danh sách ID thread
         ListThreadsResponse response = service.users().threads().list("me")
                 .setQ(query)
-                .setMaxResults(15L)
+                .setMaxResults(20L)
                 .execute();
 
         List<MailThreadResponse> threadResponses = new ArrayList<>();
         if (response.getThreads() != null) {
             for (Thread threadSnippet : response.getThreads()) {
-                // Lấy chi tiết toàn bộ thread bao gồm các messages
-                Thread fullThread = service.users().threads().get("me", threadSnippet.getId()).execute();
+                // CHỈ lấy metadata (headers), không lấy body để tối ưu tốc độ và dung lượng
+                Thread fullThread = service.users().threads().get("me", threadSnippet.getId())
+                        .setFormat("metadata")
+                        .execute();
 
-                List<MailResponse> messages = new ArrayList<>();
-                boolean threadUnread = false;
                 String threadSubject = "";
                 String latestDate = "";
                 String latestSenderName = "";
                 Long threadInternalDate = 0L;
+                boolean threadUnread = false;
+                int messageCount = 0;
 
                 if (fullThread.getMessages() != null) {
-                    List<Message> threadMessages = new ArrayList<>(fullThread.getMessages());
-                    // Đảm bảo tin nhắn được sắp xếp chuẩn theo thời gian (cũ -> mới)
-                    threadMessages.sort((m1, m2) -> Long.compare(m1.getInternalDate(), m2.getInternalDate()));
+                    messageCount = fullThread.getMessages().size();
+                    // Lấy tin nhắn cuối cùng (thường là cái mới nhất trong thread)
+                    Message lastMsgSnippet = fullThread.getMessages().get(messageCount - 1);
+                    // Và tin nhắn đầu tiên để lấy Subect
+                    Message firstMsgSnippet = fullThread.getMessages().get(0);
 
-                    for (Message fullMsg : threadMessages) {
-                        String from = "";
-                        String to = "";
-                        String subject = "";
-                        String date = "";
-                        Long internalDate = fullMsg.getInternalDate();
+                    threadInternalDate = lastMsgSnippet.getInternalDate();
 
-                        // Trích xuất Headers cho message hiện tại
-                        if (fullMsg.getPayload().getHeaders() != null) {
-                            for (MessagePartHeader header : fullMsg.getPayload().getHeaders()) {
-                                switch (header.getName()) {
-                                    case "From"    -> from    = header.getValue();
-                                    case "To"      -> to      = header.getValue();
-                                    case "Subject" -> subject = header.getValue();
-                                    case "Date"    -> date    = header.getValue();
-                                }
+                    // Trích xuất Subject từ tin nhắn đầu tiên
+                    if (firstMsgSnippet.getPayload().getHeaders() != null) {
+                        for (MessagePartHeader header : firstMsgSnippet.getPayload().getHeaders()) {
+                            if (header.getName().equalsIgnoreCase("Subject")) {
+                                threadSubject = header.getValue();
+                                break;
                             }
                         }
-
-                        String senderName = extractSenderName(from);
-                        String senderEmail = extractSenderEmail(from);
-
-                        // Trích xuất trạng thái Chưa đọc (Unread)
-                        boolean unread = fullMsg.getLabelIds() != null && fullMsg.getLabelIds().contains("UNREAD");
-                        if (unread) threadUnread = true;
-
-                        // Trích xuất file đính kèm
-                        List<MailAttachmentResponse> attachments = new ArrayList<>();
-                        if (fullMsg.getPayload() != null) {
-                            extractAttachments(fullMsg.getPayload(), attachments);
-                        }
-
-                        // Trích xuất Content (Body)
-                        String content = getMessageBody(fullMsg.getPayload());
-
-                        messages.add(new MailResponse(
-                                fullMsg.getId(), from, to, senderName, senderEmail, subject, date,
-                                fullMsg.getSnippet(), content, unread, internalDate, attachments
-                        ));
                     }
 
-                    if (!messages.isEmpty()) {
-                        MailResponse firstMsg = messages.get(0);
-                        MailResponse lastMsg = messages.get(messages.size() - 1); // newest message
+                    // Trích xuất Date và From từ tin nhắn cuối cùng
+                    if (lastMsgSnippet.getPayload().getHeaders() != null) {
+                        for (MessagePartHeader header : lastMsgSnippet.getPayload().getHeaders()) {
+                            if (header.getName().equalsIgnoreCase("Date")) {
+                                latestDate = header.getValue();
+                            } else if (header.getName().equalsIgnoreCase("From")) {
+                                latestSenderName = extractSenderName(header.getValue());
+                            }
+                        }
+                    }
 
-                        threadSubject = firstMsg.subject() != null && !firstMsg.subject().isEmpty() ? firstMsg.subject() : "(No Subject)";
-                        latestDate = lastMsg.date();
-                        latestSenderName = lastMsg.senderName();
-                        threadInternalDate = lastMsg.internalDate();
+                    // Kiểm tra xem có tin nhắn nào chưa đọc không
+                    for (Message m : fullThread.getMessages()) {
+                        if (m.getLabelIds() != null && m.getLabelIds().contains("UNREAD")) {
+                            threadUnread = true;
+                            break;
+                        }
                     }
                 }
 
                 threadResponses.add(new MailThreadResponse(
                         fullThread.getId(),
-                        threadSubject,
-                        fullThread.getSnippet(), // Snippet tóm tắt từ Google cho toàn thread
+                        (threadSubject == null || threadSubject.isEmpty()) ? "(No Subject)" : threadSubject,
+                        fullThread.getSnippet(),
                         latestDate,
                         latestSenderName,
                         threadUnread,
-                        messages.size(),
+                        messageCount,
                         threadInternalDate,
-                        messages
+                        new ArrayList<>() // Không trả về nội dung tin nhắn ở danh sách
                 ));
             }
         }
@@ -130,6 +114,91 @@ public class MailServiceImpl implements MailService {
         threadResponses.sort((t1, t2) -> Long.compare(t2.internalDate(), t1.internalDate()));
         
         return threadResponses;
+    }
+
+    @Override
+    public MailThreadResponse getThreadDetails(OAuth2AuthorizedClient client, String threadId) throws IOException {
+        String accessToken = client.getAccessToken().getTokenValue();
+
+        Gmail service = new Gmail.Builder(
+                new NetHttpTransport(),
+                GsonFactory.getDefaultInstance(),
+                request -> request.getHeaders().setAuthorization("Bearer " + accessToken))
+                .setApplicationName("SpringMail")
+                .build();
+
+        // Lấy FULL chi tiết thread bao gồm cả body
+        Thread fullThread = service.users().threads().get("me", threadId).execute();
+
+        List<MailResponse> messages = new ArrayList<>();
+        String threadSubject = "";
+        String latestDate = "";
+        String latestSenderName = "";
+        Long threadInternalDate = 0L;
+        boolean threadUnread = false;
+
+        if (fullThread.getMessages() != null) {
+            List<Message> threadMessages = new ArrayList<>(fullThread.getMessages());
+            // Đảm bảo tin nhắn được sắp xếp chuẩn theo thời gian (cũ -> mới)
+            threadMessages.sort((m1, m2) -> Long.compare(m1.getInternalDate(), m2.getInternalDate()));
+
+            for (Message fullMsg : threadMessages) {
+                String from = "";
+                String to = "";
+                String subject = "";
+                String date = "";
+                Long internalDate = fullMsg.getInternalDate();
+
+                if (fullMsg.getPayload().getHeaders() != null) {
+                    for (MessagePartHeader header : fullMsg.getPayload().getHeaders()) {
+                        switch (header.getName()) {
+                            case "From"    -> from    = header.getValue();
+                            case "To"      -> to      = header.getValue();
+                            case "Subject" -> subject = header.getValue();
+                            case "Date"    -> date    = header.getValue();
+                        }
+                    }
+                }
+
+                String senderName = extractSenderName(from);
+                String senderEmail = extractSenderEmail(from);
+                boolean unread = fullMsg.getLabelIds() != null && fullMsg.getLabelIds().contains("UNREAD");
+                if (unread) threadUnread = true;
+
+                List<MailAttachmentResponse> attachments = new ArrayList<>();
+                if (fullMsg.getPayload() != null) {
+                    extractAttachments(fullMsg.getPayload(), attachments);
+                }
+
+                String content = getMessageBody(fullMsg.getPayload());
+
+                messages.add(new MailResponse(
+                        fullMsg.getId(), from, to, senderName, senderEmail, subject, date,
+                        fullMsg.getSnippet(), content, unread, internalDate, attachments
+                ));
+            }
+
+            if (!messages.isEmpty()) {
+                MailResponse firstMsg = messages.get(0);
+                MailResponse lastMsg = messages.get(messages.size() - 1);
+                threadSubject = (firstMsg.subject() != null && !firstMsg.subject().isEmpty()) ? firstMsg.subject() : "(No Subject)";
+                latestDate = lastMsg.date();
+                latestSenderName = lastMsg.senderName();
+                threadInternalDate = lastMsg.internalDate();
+            }
+        }
+
+        return new MailThreadResponse(
+                fullThread.getId(),
+                threadSubject,
+                fullThread.getSnippet(),
+                latestDate,
+                latestSenderName,
+                threadUnread,
+                messages.size(),
+                threadInternalDate,
+                messages
+        );
     }
 
     /**

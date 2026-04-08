@@ -1,11 +1,14 @@
 import React from 'react';
 import { Sparkles, ListChecks, Paperclip, FileText } from 'lucide-react';
 import EmailBody from './EmailBody';
+import EmailReaderSkeleton from './EmailReaderSkeleton';
 
-export default function EmailReader({ selectedThreadId, threads = [] }) {
-    const thread = threads.find(t => t.id === selectedThreadId);
+export default function EmailReader({ selectedThread, isLoading }) {
+    if (isLoading) {
+        return <EmailReaderSkeleton />;
+    }
 
-    if (!thread) {
+    if (!selectedThread) {
         return (
             <div className="flex-1 flex items-center justify-center bg-canvas-gray">
                 <div className="text-center text-muted-steel">
@@ -15,6 +18,8 @@ export default function EmailReader({ selectedThreadId, threads = [] }) {
             </div>
         );
     }
+
+    const thread = selectedThread;
 
     return (
         <div className="flex-1 flex flex-col h-screen bg-canvas-gray overflow-hidden">

@@ -9,6 +9,11 @@ class MailService {
         const response = await api.get(apiUrl);
         return response.data.result;
     }
+
+    async fetchThreadDetail(threadId: string) {
+        const response = await api.get(`/get-thread/${threadId}`);
+        return response.data.result;
+    }
 }
 
 export default new MailService();

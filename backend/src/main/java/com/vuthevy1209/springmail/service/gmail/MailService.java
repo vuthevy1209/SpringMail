@@ -8,5 +8,6 @@ import java.util.List;
 
 public interface MailService {
     List<MailThreadResponse> getRecentEmails(OAuth2AuthorizedClient client, String folder, String category) throws IOException;
+    MailThreadResponse getThreadDetails(OAuth2AuthorizedClient client, String threadId) throws IOException;
     byte[] getAttachment(OAuth2AuthorizedClient client, String messageId, String attachmentId) throws IOException;
 }

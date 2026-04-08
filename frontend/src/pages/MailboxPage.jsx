@@ -16,6 +16,8 @@ export default function MailboxPage({ folder }) {
 	const [threads, setThreads] = useState([]);
 	const [isLoadingThreads, setIsLoadingThreads] = useState(false);
 	const [selectedThreadId, setSelectedThreadId] = useState(null);
+	const [selectedThreadData, setSelectedThreadData] = useState(null);
+	const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
 	// For inbox only — which category tab is active
 	const [activeTab, setActiveTab] = useState('primary');
@@ -25,6 +27,7 @@ export default function MailboxPage({ folder }) {
 		const fetchLatestEmails = async () => {
 			setThreads([]);
 			setSelectedThreadId(null);
+			setSelectedThreadData(null);
 			setIsLoadingThreads(true);
 
 			try {
@@ -37,6 +40,28 @@ export default function MailboxPage({ folder }) {
 
 		fetchLatestEmails();
 	}, [folder, activeTab]);
+
+	// Fetch thread detail when selectedThreadId changes
+	useEffect(() => {
+		if (!selectedThreadId) {
+			setSelectedThreadData(null);
+			return;
+		}
+
+		const fetchDetail = async () => {
+			setIsLoadingDetail(true);
+			try {
+				const data = await mailService.fetchThreadDetail(selectedThreadId);
+				setSelectedThreadData(data);
+			} catch (error) {
+				console.error("Failed to fetch thread detail:", error);
+			} finally {
+				setIsLoadingDetail(false);
+			}
+		};
+
+		fetchDetail();
+	}, [selectedThreadId]);
 
 	return (
 		<>
@@ -51,8 +76,8 @@ export default function MailboxPage({ folder }) {
 			/>
 			<EmailReader
 				folder={folder}
-				threads={threads}
-				selectedThreadId={selectedThreadId}
+				selectedThread={selectedThreadData}
+				isLoading={isLoadingDetail}
 			/>
 		</>
 	);

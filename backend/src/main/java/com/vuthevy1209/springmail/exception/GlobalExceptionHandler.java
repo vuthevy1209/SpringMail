@@ -3,6 +3,7 @@ package com.vuthevy1209.springmail.exception;
 import com.vuthevy1209.springmail.dto.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -21,7 +22,10 @@ public class GlobalExceptionHandler {
                 .message(exception.getMessage())
                 .build();
 
-        return ResponseEntity.status(errorCode.getStatusCode()).body(apiResponse);
+        return ResponseEntity
+                .status(errorCode.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiResponse);
     }
 
     // Handle custom application exceptions

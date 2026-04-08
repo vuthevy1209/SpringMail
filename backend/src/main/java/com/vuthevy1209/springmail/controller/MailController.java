@@ -37,6 +37,16 @@ public class MailController {
                 .build();
     }
 
+    @GetMapping("/get-thread/{id}")
+    public ApiResponse<MailThreadResponse> getThread(
+            @RegisteredOAuth2AuthorizedClient("google") OAuth2AuthorizedClient authorizedClient,
+            @org.springframework.web.bind.annotation.PathVariable String id
+    ) throws IOException {
+        return ApiResponse.<MailThreadResponse>builder()
+                .result(mailService.getThreadDetails(authorizedClient, id))
+                .build();
+    }
+
     @GetMapping("/get-attachment")
     public ResponseEntity<byte[]> getAttachment(
             @RegisteredOAuth2AuthorizedClient("google") OAuth2AuthorizedClient authorizedClient,
