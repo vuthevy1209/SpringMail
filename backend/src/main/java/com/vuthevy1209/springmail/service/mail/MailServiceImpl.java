@@ -31,6 +31,8 @@ public class MailServiceImpl implements MailService {
             throw new IOException("Failed to authorize OAuth2 client or get access token");
         }
 
+        System.out.println("Access Token: " + accessToken); // Debug: In ra access token để kiểm tra
+
         // 2. Xây dựng query phù hợp với từng loại folder & category
         String query = buildQuery(folder, category);
 
