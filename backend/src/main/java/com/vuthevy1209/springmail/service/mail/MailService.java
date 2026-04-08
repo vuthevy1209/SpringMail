@@ -1,13 +1,12 @@
 package com.vuthevy1209.springmail.service.mail;
 
 import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 
 import java.io.IOException;
 import java.util.List;
 
 public interface MailService {
-    List<MailThreadResponse> getRecentEmails(OAuth2AuthorizedClient client, String folder, String category) throws IOException;
-    MailThreadResponse getThreadDetails(OAuth2AuthorizedClient client, String threadId) throws IOException;
-    byte[] getAttachment(OAuth2AuthorizedClient client, String messageId, String attachmentId) throws IOException;
+    List<MailThreadResponse> getRecentEmails(String folder, String category) throws IOException;
+    MailThreadResponse getThreadDetails(String threadId) throws IOException;
+    byte[] getAttachment(String messageId, String attachmentId) throws IOException;
 }

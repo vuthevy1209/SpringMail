@@ -8,9 +8,8 @@ import com.google.api.services.gmail.model.Thread;
 import com.vuthevy1209.springmail.dto.response.mail.MailAttachmentResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import com.vuthevy1209.springmail.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -19,11 +18,16 @@ import java.util.List;
 @Service
 public class MailServiceImpl implements MailService {
 
-    @Override
-    public List<MailThreadResponse> getRecentEmails(OAuth2AuthorizedClient client, String folder, String category) throws IOException {
 
-        // 1. Lấy Access Token từ OAuth2AuthorizedClient
-        String accessToken = client.getAccessToken().getTokenValue();
+
+    @Override
+    public List<MailThreadResponse> getRecentEmails(String folder, String category) throws IOException {
+
+        // 1. Lấy Access Token từ SecurityUtils
+        String accessToken = SecurityUtils.getAccessToken("google");
+        if (accessToken == null) {
+            throw new IOException("Failed to authorize OAuth2 client or get access token");
+        }
 
         // 2. Khởi tạo Gmail Service
         Gmail service = new Gmail.Builder(
@@ -117,8 +121,11 @@ public class MailServiceImpl implements MailService {
     }
 
     @Override
-    public MailThreadResponse getThreadDetails(OAuth2AuthorizedClient client, String threadId) throws IOException {
-        String accessToken = client.getAccessToken().getTokenValue();
+    public MailThreadResponse getThreadDetails(String threadId) throws IOException {
+        String accessToken = SecurityUtils.getAccessToken("google");
+        if (accessToken == null) {
+            throw new IOException("Failed to authorize OAuth2 client or get access token");
+        }
 
         Gmail service = new Gmail.Builder(
                 new NetHttpTransport(),
@@ -301,8 +308,11 @@ public class MailServiceImpl implements MailService {
     }
 
     @Override
-    public byte[] getAttachment(OAuth2AuthorizedClient client, String messageId, String attachmentId) throws IOException {
-        String accessToken = client.getAccessToken().getTokenValue();
+    public byte[] getAttachment(String messageId, String attachmentId) throws IOException {
+        String accessToken = SecurityUtils.getAccessToken("google");
+        if (accessToken == null) {
+            throw new IOException("Failed to authorize OAuth2 client or get access token");
+        }
 
         Gmail service = new Gmail.Builder(
                 new NetHttpTransport(),

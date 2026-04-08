@@ -7,8 +7,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,34 +26,31 @@ public class MailController {
 
     @GetMapping("/get-emails")
     public ApiResponse<List<MailThreadResponse>> getEmails(
-            @RegisteredOAuth2AuthorizedClient("google") OAuth2AuthorizedClient authorizedClient,
             @RequestParam(defaultValue = "inbox") String folder,
             @RequestParam(required = false) String category
     ) throws IOException {
         return ApiResponse.<List<MailThreadResponse>>builder()
-                .result(mailService.getRecentEmails(authorizedClient, folder, category))
+                .result(mailService.getRecentEmails(folder, category))
                 .build();
     }
 
     @GetMapping("/get-thread/{id}")
     public ApiResponse<MailThreadResponse> getThread(
-            @RegisteredOAuth2AuthorizedClient("google") OAuth2AuthorizedClient authorizedClient,
             @org.springframework.web.bind.annotation.PathVariable String id
     ) throws IOException {
         return ApiResponse.<MailThreadResponse>builder()
-                .result(mailService.getThreadDetails(authorizedClient, id))
+                .result(mailService.getThreadDetails(id))
                 .build();
     }
 
     @GetMapping("/get-attachment")
     public ResponseEntity<byte[]> getAttachment(
-            @RegisteredOAuth2AuthorizedClient("google") OAuth2AuthorizedClient authorizedClient,
             @RequestParam String messageId,
             @RequestParam String attachmentId,
             @RequestParam(required = false) String filename,
             @RequestParam(required = false) String contentType
     ) throws IOException {
-        byte[] content = mailService.getAttachment(authorizedClient, messageId, attachmentId);
+        byte[] content = mailService.getAttachment(messageId, attachmentId);
         
         HttpHeaders headers = new HttpHeaders();
         

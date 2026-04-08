@@ -2,11 +2,9 @@ package com.vuthevy1209.springmail.service.auth;
 
 import java.util.Map;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-
+import com.vuthevy1209.springmail.utils.SecurityUtils;
 import com.vuthevy1209.springmail.dto.response.auth.UserResponse;
 
 import jakarta.servlet.ServletException;
@@ -19,8 +17,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserResponse getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof OAuth2User user)) {
+        OAuth2User user = SecurityUtils.getCurrentOAuth2User();
+        if (user == null) {
             return null;
         }
 
@@ -41,7 +39,7 @@ public class AuthServiceImpl implements AuthService {
             if (request.getSession(false) != null) {
                 request.getSession(false).invalidate();
             }
-            SecurityContextHolder.clearContext();
+            SecurityUtils.clearContext();
         } catch (ServletException e) {
             log.error("Error during logout", e);
             throw e;
