@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Inbox, Send, FileText, Trash2, Settings, Mail, LogOut, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Inbox, Send, FileText, Trash2, Settings, LogOut, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import SpringIcon from '../../assets/spring-icon.svg';
 
 const iconMap = {
 	Inbox: Inbox,
@@ -50,8 +51,8 @@ export default function Sidebar() {
 
             {/* Brand */}
             <div className={`flex items-center mb-8 overflow-hidden transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'gap-4 px-2'}`}>
-                <div className="bg-emerald-accent text-white p-2 rounded-xl flex items-center shrink-0 shadow-sm">
-                    <Mail size={22} />
+                <div className="flex items-center shrink-0">
+                    <img src={SpringIcon} alt="SpringMail Logo" className="w-[32px] h-[32px]" />
                 </div>
                 {!isCollapsed && (
                     <span className="font-bold tracking-tight text-xl transition-all duration-300 whitespace-nowrap overflow-hidden text-charcoal-ink">

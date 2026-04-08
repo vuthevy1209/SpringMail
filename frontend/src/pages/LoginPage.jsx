@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail } from 'lucide-react';
+import SpringIcon from '../assets/spring-icon.svg';
 
 export default function LoginPage() {
 	const navigate = useNavigate();
@@ -16,8 +16,8 @@ export default function LoginPage() {
 
 				{/* Branding */}
 				<div className="flex flex-col items-center gap-4">
-					<div className="w-12 h-12 bg-emerald-accent rounded-xl flex items-center justify-center text-white">
-						<Mail size={24} />
+					<div className="flex items-center justify-center">
+						<img src={SpringIcon} alt="SpringMail Logo" className="w-16 h-16" />
 					</div>
 					<div>
 						<h1 className="text-2xl tracking-tight text-charcoal-ink">SpringMail</h1>
