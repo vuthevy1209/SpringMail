@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.service.gmail;
+package com.vuthevy1209.springmail.service.mail;
 
 import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;

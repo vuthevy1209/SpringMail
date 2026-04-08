@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.service.gmail;
+package com.vuthevy1209.springmail.service.mail;
 
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;

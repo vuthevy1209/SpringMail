@@ -1,7 +1,7 @@
 package com.vuthevy1209.springmail.controller;
 
 import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
-import com.vuthevy1209.springmail.service.gmail.MailService;
+import com.vuthevy1209.springmail.service.mail.MailService;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
