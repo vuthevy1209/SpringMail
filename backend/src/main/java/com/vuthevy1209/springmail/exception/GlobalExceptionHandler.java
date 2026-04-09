@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = exception.getErrorCode();
         ApiResponse<?> apiResponse = ApiResponse.builder()
                 .code(errorCode.getCode())
-                .message(errorCode.getMessage())
+                .message(exception.getMessage())
                 .build();
 
         return ResponseEntity.status(errorCode.getStatusCode()).body(apiResponse);

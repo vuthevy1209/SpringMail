@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class GmailAttachmentBodyDto {
 	private String data; // Base64 encoded
-	private Integer size;
+	private Long size;
 	private String attachmentId;
 }

@@ -20,7 +20,6 @@ import java.util.List;
 public class MailServiceImpl implements MailService {
 
     private final GmailService gmailService;
-    private final GmailMapper gmailMapper;
 
 
     @Override
@@ -48,11 +47,11 @@ public class MailServiceImpl implements MailService {
                 
                 // Sử dụng GmailMapper để làm giàu dữ liệu (bóc tách headers)
                 if (fullThread.getMessages() != null) {
-                    fullThread.getMessages().forEach(gmailMapper::enrich);
+                    fullThread.getMessages().forEach(GmailMapper::enrichGmailMessageDto);
                 }
 
                 // Map sang MailThreadResponse (messages list rỗng cho danh sách recent)
-                MailThreadResponse threadResponse = gmailMapper.toMailThreadResponse(fullThread);
+                MailThreadResponse threadResponse = GmailMapper.toMailThreadResponse(fullThread);
                 if (threadResponse != null) {
                     // Xoá danh sách tin nhắn để tiết kiệm băng thông khi lấy danh sách thread
                     threadResponses.add(new MailThreadResponse(
@@ -90,10 +89,10 @@ public class MailServiceImpl implements MailService {
             // Đảm bảo tin nhắn được sắp xếp chuẩn theo thời gian (cũ -> mới)
             fullThread.getMessages().sort((m1, m2) -> Long.compare(m1.getInternalDate(), m2.getInternalDate()));
             // Làm giàu dữ liệu cho từng tin nhắn (bóc tách body, headers, attachments)
-            fullThread.getMessages().forEach(gmailMapper::enrich);
+            fullThread.getMessages().forEach(GmailMapper::enrichGmailMessageDto);
         }
 
-        return gmailMapper.toMailThreadResponse(fullThread);
+        return GmailMapper.toMailThreadResponse(fullThread);
     }
 
     /**

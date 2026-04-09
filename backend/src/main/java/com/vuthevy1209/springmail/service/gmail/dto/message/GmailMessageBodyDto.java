@@ -12,5 +12,5 @@ import lombok.NoArgsConstructor;
 public class GmailMessageBodyDto {
 	private String data;
 	private String attachmentId;
-	private Integer size;
+	private Long size;
 }

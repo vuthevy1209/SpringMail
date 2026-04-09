@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatusCode;
 public enum ErrorCode {
     SUCCESS("success", "Success", HttpStatus.OK),
     UNAUTHENTICATED("unauthenticated", "Unauthenticated", HttpStatus.UNAUTHORIZED),
+    GMAIL_UNAUTHENTICATED("gmail-unauthenticated", "Gmail authentication failed", HttpStatus.UNAUTHORIZED),
+    GMAIL_API_ERROR("gmail-api-error", "Error calling Gmail API", HttpStatus.INTERNAL_SERVER_ERROR),
     UNCATEGORIZED_EXCEPTION("uncategorized-exception", "Uncategorized error", HttpStatus.INTERNAL_SERVER_ERROR),
     ;
 

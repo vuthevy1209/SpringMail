@@ -20,7 +20,6 @@ import java.io.IOException;
 public class GoogleLibraryVersionGmailServiceImpl implements GmailService {
 
 	private final GmailServiceFactory gmailServiceFactory;
-	private final GmailMapper gmailMapper;
 
 	@Override
 	public GmailListThreadsResponseDto listThreads(String accessToken, String query, Long maxResults, String pageToken) throws IOException {
@@ -30,7 +29,7 @@ public class GoogleLibraryVersionGmailServiceImpl implements GmailService {
 				.setMaxResults(maxResults)
 				.setPageToken(pageToken)
 				.execute();
-		return gmailMapper.toDto(response);
+		return GmailMapper.toGmailListThreadsResponseDto(response);
 	}
 
 	@Override
@@ -40,7 +39,7 @@ public class GoogleLibraryVersionGmailServiceImpl implements GmailService {
 				.setFormat(format)
 				.setMetadataHeaders(metadataHeaders)
 				.execute();
-		return gmailMapper.toDto(response);
+		return GmailMapper.toGmailThreadDto(response);
 	}
 
 	@Override
@@ -49,7 +48,7 @@ public class GoogleLibraryVersionGmailServiceImpl implements GmailService {
 		var response = service.users().messages().attachments()
 				.get("me", messageId, attachmentId)
 				.execute();
-		return gmailMapper.toDto(response, true);
+		return GmailMapper.toGmailAttachmentBodyDto(response);
 	}
 
 	@Override
@@ -60,6 +59,6 @@ public class GoogleLibraryVersionGmailServiceImpl implements GmailService {
 				.setMaxResults(maxResults)
 				.setPageToken(pageToken)
 				.execute();
-		return gmailMapper.toDto(response);
+		return GmailMapper.toGmailListHistoryResponseDto(response);
 	}
 }

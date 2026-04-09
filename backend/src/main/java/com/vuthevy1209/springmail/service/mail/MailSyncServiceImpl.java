@@ -31,7 +31,6 @@ public class MailSyncServiceImpl implements MailSyncService {
 	private final MailThreadRepository threadRepository;
 	private final MailMessageRepository messageRepository;
 	private final UserRepository userRepository;
-	private final GmailMapper gmailMapper;
 
 	@Override
 	public void sync(User user) throws IOException {

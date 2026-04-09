@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GmailAttachmentDto {
-	private String id;
+	private String attachmentId;
 	private String filename;
 	private String mimeType;
 	private Long size;
