@@ -6,6 +6,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication
 @EnableFeignClients
+@org.springframework.scheduling.annotation.EnableScheduling
 public class SpringMailApplication {
 
 	public static void main(String[] args) {

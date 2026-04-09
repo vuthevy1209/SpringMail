@@ -22,6 +22,19 @@ export default function MailboxPage({ folder }) {
 	// For inbox only — which category tab is active
 	const [activeTab, setActiveTab] = useState('primary');
 
+	// Sync emails on mount
+	useEffect(() => {
+		const syncEmails = async () => {
+			try {
+				await mailService.sync();
+				console.log("Sync triggered successfully");
+			} catch (error) {
+				console.error("Failed to trigger sync:", error);
+			}
+		};
+		syncEmails();
+	}, []);
+
 	// Fetch emails whenever folder changes or inbox tab changes
 	useEffect(() => {
 		const controller = new AbortController();

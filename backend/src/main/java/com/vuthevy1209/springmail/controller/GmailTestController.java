@@ -26,7 +26,7 @@ public class GmailTestController {
     ) throws IOException {
         String accessToken = extractToken(authHeader);
         return ApiResponse.<ListThreadsResponse>builder()
-            .result(gmailClient.listThreads(accessToken, query, maxResults))
+            .result(gmailClient.listThreads(accessToken, query, maxResults, null))
             .build();
     }
 

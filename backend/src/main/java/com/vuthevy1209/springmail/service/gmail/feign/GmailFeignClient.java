@@ -1,5 +1,6 @@
 package com.vuthevy1209.springmail.service.gmail.feign;
 
+import com.google.api.services.gmail.model.ListHistoryResponse;
 import com.google.api.services.gmail.model.ListThreadsResponse;
 import com.google.api.services.gmail.model.MessagePartBody;
 import com.google.api.services.gmail.model.Thread;
@@ -17,7 +18,8 @@ public interface GmailFeignClient {
     ListThreadsResponse listThreads(
             @RequestHeader("Authorization") String authHeader,
             @RequestParam("q") String query,
-            @RequestParam("maxResults") Long maxResults
+            @RequestParam("maxResults") Long maxResults,
+            @RequestParam(value = "pageToken", required = false) String pageToken
     );
 
     @GetMapping(value = "/gmail/v1/users/me/threads/{id}", produces = "application/json")
@@ -33,5 +35,13 @@ public interface GmailFeignClient {
             @RequestHeader("Authorization") String authHeader,
             @PathVariable("messageId") String messageId,
             @PathVariable("id") String attachmentId
+    );
+
+    @GetMapping("/gmail/v1/users/me/history")
+    ListHistoryResponse listHistory(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam("startHistoryId") String startHistoryId,
+            @RequestParam(value = "maxResults", required = false) Long maxResults,
+            @RequestParam(value = "pageToken", required = false) String pageToken
     );
 }

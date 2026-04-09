@@ -14,6 +14,11 @@ class MailService {
         const response = await api.get(`/get-thread/${threadId}`, { signal });
         return response.data.result;
     }
+
+    async sync(signal?: AbortSignal) {
+        const response = await api.post('/sync', {}, { signal });
+        return response.data.result;
+    }
 }
 
 export default new MailService();

@@ -1,5 +1,6 @@
 package com.vuthevy1209.springmail.service.gmail.feign;
 
+import com.google.api.services.gmail.model.ListHistoryResponse;
 import com.google.api.services.gmail.model.ListThreadsResponse;
 import com.google.api.services.gmail.model.MessagePartBody;
 import com.google.api.services.gmail.model.Thread;
@@ -19,8 +20,8 @@ public class FeignGmailClient implements GmailClient {
     private final GmailFeignClient gmailFeignClient;
 
     @Override
-    public ListThreadsResponse listThreads(String accessToken, String query, Long maxResults) throws IOException {
-        return gmailFeignClient.listThreads("Bearer " + accessToken, query, maxResults);
+    public ListThreadsResponse listThreads(String accessToken, String query, Long maxResults, String pageToken) throws IOException {
+        return gmailFeignClient.listThreads("Bearer " + accessToken, query, maxResults, pageToken);
     }
 
     @Override
@@ -31,5 +32,10 @@ public class FeignGmailClient implements GmailClient {
     @Override
     public MessagePartBody getAttachment(String accessToken, String messageId, String attachmentId) throws IOException {
         return gmailFeignClient.getAttachment("Bearer " + accessToken, messageId, attachmentId);
+    }
+
+    @Override
+    public ListHistoryResponse listHistory(String accessToken, String startHistoryId, Long maxResults, String pageToken) throws IOException {
+        return gmailFeignClient.listHistory("Bearer " + accessToken, startHistoryId, maxResults, pageToken);
     }
 }

@@ -37,7 +37,7 @@ public class MailServiceImpl implements MailService {
         String query = buildQuery(folder, category);
 
         // 3. Lấy danh sách ID thread qua GmailClient
-        ListThreadsResponse response = gmailClient.listThreads(accessToken, query, 20L);
+        ListThreadsResponse response = gmailClient.listThreads(accessToken, query, 20L, null);
 
         List<MailThreadResponse> threadResponses = new ArrayList<>();
         if (response.getThreads() != null) {

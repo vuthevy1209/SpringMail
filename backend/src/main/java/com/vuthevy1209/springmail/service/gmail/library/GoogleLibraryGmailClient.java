@@ -1,12 +1,15 @@
 package com.vuthevy1209.springmail.service.gmail.library;
 
 import com.google.api.services.gmail.Gmail;
+import com.google.api.services.gmail.model.ListHistoryResponse;
 import com.google.api.services.gmail.model.ListThreadsResponse;
 import com.google.api.services.gmail.model.MessagePartBody;
 import com.google.api.services.gmail.model.Thread;
 import com.vuthevy1209.springmail.configuration.GmailServiceFactory;
 import com.vuthevy1209.springmail.service.gmail.GmailClient;
 import lombok.RequiredArgsConstructor;
+
+import java.math.BigInteger;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -19,11 +22,12 @@ public class GoogleLibraryGmailClient implements GmailClient {
     private final GmailServiceFactory gmailServiceFactory;
 
     @Override
-    public ListThreadsResponse listThreads(String accessToken, String query, Long maxResults) throws IOException {
+    public ListThreadsResponse listThreads(String accessToken, String query, Long maxResults, String pageToken) throws IOException {
         Gmail service = gmailServiceFactory.build(accessToken);
         return service.users().threads().list("me")
                 .setQ(query)
                 .setMaxResults(maxResults)
+                .setPageToken(pageToken)
                 .execute();
     }
 
@@ -41,6 +45,16 @@ public class GoogleLibraryGmailClient implements GmailClient {
         Gmail service = gmailServiceFactory.build(accessToken);
         return service.users().messages().attachments()
                 .get("me", messageId, attachmentId)
+                .execute();
+    }
+
+    @Override
+    public ListHistoryResponse listHistory(String accessToken, String startHistoryId, Long maxResults, String pageToken) throws IOException {
+        Gmail service = gmailServiceFactory.build(accessToken);
+        return service.users().history().list("me")
+                .setStartHistoryId(new BigInteger(startHistoryId))
+                .setMaxResults(maxResults)
+                .setPageToken(pageToken)
                 .execute();
     }
 }
