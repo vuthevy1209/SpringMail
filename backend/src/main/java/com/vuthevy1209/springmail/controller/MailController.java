@@ -1,72 +1,53 @@
 package com.vuthevy1209.springmail.controller;
 
+import com.vuthevy1209.springmail.dto.response.ApiResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
 import com.vuthevy1209.springmail.service.mail.MailService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 
-import com.vuthevy1209.springmail.dto.response.ApiResponse;
-
-import lombok.RequiredArgsConstructor;
-
 @RestController
+@RequestMapping("/mail")
 @RequiredArgsConstructor
 public class MailController {
 
-    private final MailService mailService;
-    private final com.vuthevy1209.springmail.service.mail.MailSyncService mailSyncService;
-    private final com.vuthevy1209.springmail.repository.UserRepository userRepository;
+	private final MailService mailService;
 
-    @org.springframework.web.bind.annotation.PostMapping("/sync")
-    public ApiResponse<String> sync() throws IOException {
-        org.springframework.security.oauth2.core.user.OAuth2User oauth2User = com.vuthevy1209.springmail.utils.SecurityUtils.getCurrentOAuth2User();
-        if (oauth2User == null) {
-            return ApiResponse.<String>builder().message("User not authenticated").build();
-        }
-        String email = oauth2User.getAttribute("email");
-        com.vuthevy1209.springmail.entity.User user = userRepository.findByEmail(email)
-                .orElseGet(() -> {
-                    com.vuthevy1209.springmail.entity.User newUser = com.vuthevy1209.springmail.entity.User.builder()
-                            .id(java.util.UUID.randomUUID().toString())
-                            .email(email)
-                            .build();
-                    return userRepository.save(newUser);
-                });
-        mailSyncService.sync(user);
-        return ApiResponse.<String>builder().result("Sync successful").build();
-    }
+	@GetMapping("/threads")
+	public ApiResponse<List<MailThreadResponse>> getEmails(
+			@RequestParam(defaultValue = "inbox") String folder,
+			@RequestParam(required = false) String category
+	) throws IOException {
+		return ApiResponse.<List<MailThreadResponse>>builder()
+				.result(mailService.getRecentEmails(folder, category))
+				.build();
+	}
 
-    @GetMapping("/get-emails")
-    public ApiResponse<List<MailThreadResponse>> getEmails(
-            @RequestParam(defaultValue = "inbox") String folder,
-            @RequestParam(required = false) String category
-    ) throws IOException {
-        return ApiResponse.<List<MailThreadResponse>>builder()
-                .result(mailService.getRecentEmails(folder, category))
-                .build();
-    }
+	@GetMapping("/threads/{id}")
+	public ApiResponse<MailThreadResponse> getThread(
+			@PathVariable String id
+	) throws IOException {
+		return ApiResponse.<MailThreadResponse>builder()
+				.result(mailService.getThreadDetails(id))
+				.build();
+	}
 
-    @GetMapping("/get-thread/{id}")
-    public ApiResponse<MailThreadResponse> getThread(
-            @org.springframework.web.bind.annotation.PathVariable String id
-    ) throws IOException {
-        return ApiResponse.<MailThreadResponse>builder()
-                .result(mailService.getThreadDetails(id))
-                .build();
-    }
-
-	@GetMapping("/get-attachment")
+	@GetMapping("/attachments")
 	public ResponseEntity<byte[]> getAttachment(
 			@RequestParam String messageId,
 			@RequestParam String attachmentId,

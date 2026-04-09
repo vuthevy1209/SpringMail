@@ -11,11 +11,13 @@ import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.MessagePart;
 import com.google.api.services.gmail.model.MessagePartBody;
 import com.google.api.services.gmail.model.MessagePartHeader;
+import com.google.api.services.gmail.model.Profile;
 import com.google.api.services.gmail.model.Thread;
 import com.vuthevy1209.springmail.dto.response.mail.MailAttachmentResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
+import com.vuthevy1209.springmail.service.gmail.dto.profile.GmailProfileDto;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailHistoryDto;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailHistoryLabelAddedDto;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailHistoryLabelRemovedDto;
@@ -36,6 +38,18 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class GmailMapper {
+ 
+	public static GmailProfileDto toGmailProfileDto(Profile profile) {
+		if (profile == null) {
+			return null;
+		}
+		GmailProfileDto dto = new GmailProfileDto();
+		dto.setEmailAddress(profile.getEmailAddress());
+		dto.setMessagesTotal(profile.getMessagesTotal() != null ? profile.getMessagesTotal().longValue() : null);
+		dto.setThreadsTotal(profile.getThreadsTotal() != null ? profile.getThreadsTotal().longValue() : null);
+		dto.setHistoryId(profile.getHistoryId() != null ? profile.getHistoryId().longValue() : null);
+		return dto;
+	}
 
 	// verified
 	public static GmailListThreadsResponseDto toGmailListThreadsResponseDto(ListThreadsResponse response) {
@@ -129,6 +143,35 @@ public class GmailMapper {
 		}
 	}
 
+	private static String extractName(String raw) {
+		if (raw == null) return null;
+		int bracketIndex = raw.indexOf('<');
+		if (bracketIndex != -1) {
+			return raw.substring(0, bracketIndex).trim().replace("\"", "");
+		}
+		return raw;
+	}
+
+	private static String extractEmail(String raw) {
+		if (raw == null) return null;
+		Pattern pattern = Pattern.compile("<(.*?)>");
+		Matcher matcher = pattern.matcher(raw);
+		if (matcher.find()) {
+			return matcher.group(1);
+		}
+		return raw;
+	}
+
+	private static List<String> extractEmailList(String raw) {
+		if (raw == null || raw.isEmpty()) return Collections.emptyList();
+		String[] parts = raw.split(",");
+		List<String> emails = new ArrayList<>();
+		for (String part : parts) {
+			emails.add(extractEmail(part.trim()));
+		}
+		return emails;
+	}
+
 	// verified
 	private static void extractBodyAndAttachment(MessagePart part, StringBuilder htmlBuilder, StringBuilder textBuilder, List<GmailAttachmentDto> attachments) {
 		if (part == null) return;
@@ -188,8 +231,6 @@ public class GmailMapper {
 		}
 		return null;
 	}
-
-
 	// verified
 	public static GmailAttachmentDto toGmailAttachmentDto(MessagePartBody body, String filename, String mimeType) {
 		if (body == null) {
@@ -204,6 +245,11 @@ public class GmailMapper {
 				.size(body.getSize() != null ? body.getSize().longValue() : null)
 				.build();
 	}
+
+
+
+
+
 
 
 
@@ -283,34 +329,7 @@ public class GmailMapper {
 				.build();
 	}
 
-	private static String extractName(String raw) {
-		if (raw == null) return null;
-		int bracketIndex = raw.indexOf('<');
-		if (bracketIndex != -1) {
-			return raw.substring(0, bracketIndex).trim().replace("\"", "");
-		}
-		return raw;
-	}
 
-	private static String extractEmail(String raw) {
-		if (raw == null) return null;
-		Pattern pattern = Pattern.compile("<(.*?)>");
-		Matcher matcher = pattern.matcher(raw);
-		if (matcher.find()) {
-			return matcher.group(1);
-		}
-		return raw;
-	}
-
-	private static List<String> extractEmailList(String raw) {
-		if (raw == null || raw.isEmpty()) return Collections.emptyList();
-		String[] parts = raw.split(",");
-		List<String> emails = new ArrayList<>();
-		for (String part : parts) {
-			emails.add(extractEmail(part.trim()));
-		}
-		return emails;
-	}
 
 	public static MailThreadResponse toMailThreadResponse(GmailThreadDto thread) {
 		if (thread == null) return null;

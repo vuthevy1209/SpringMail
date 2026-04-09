@@ -45,7 +45,6 @@ public class GmailFeignConfiguration {
     @Slf4j
     public static class GmailFeignErrorDecoder implements ErrorDecoder {
         private final JsonFactory jsonFactory = GsonFactory.getDefaultInstance();
-        private final ErrorDecoder defaultErrorDecoder = new Default();
 
         @Override
         public Exception decode(String methodKey, Response response) {

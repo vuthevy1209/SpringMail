@@ -11,4 +11,6 @@ public interface MailMessageRepository extends MongoRepository<MailMessage, Stri
     List<MailMessage> findByThreadId(String threadId);
     List<MailMessage> findByUserId(String userId);
     void deleteByThreadId(String threadId);
+    void deleteByGoogleId(String googleId);
+    long countByThreadId(String threadId);
 }

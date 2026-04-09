@@ -4,5 +4,9 @@ import com.vuthevy1209.springmail.entity.User;
 import java.io.IOException;
 
 public interface MailSyncService {
-	void sync(User user) throws IOException;
+	void syncForUser() throws IOException;
+
+	void syncForUser(User user) throws IOException;
+
+	void syncMail(User user, String accessToken) throws IOException;
 }

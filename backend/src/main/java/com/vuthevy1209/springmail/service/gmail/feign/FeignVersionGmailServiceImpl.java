@@ -3,10 +3,12 @@ package com.vuthevy1209.springmail.service.gmail.feign;
 import com.google.api.services.gmail.model.ListHistoryResponse;
 import com.google.api.services.gmail.model.ListThreadsResponse;
 import com.google.api.services.gmail.model.MessagePartBody;
+import com.google.api.services.gmail.model.Profile;
 import com.google.api.services.gmail.model.Thread;
 import com.vuthevy1209.springmail.service.gmail.GmailService;
 import com.vuthevy1209.springmail.service.gmail.GmailMapper;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
+import com.vuthevy1209.springmail.service.gmail.dto.profile.GmailProfileDto;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailListHistoryResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
@@ -22,6 +24,12 @@ import org.springframework.stereotype.Service;
 public class FeignVersionGmailServiceImpl implements GmailService {
 
 	private final GmailFeignClient gmailFeignClient;
+ 
+	@Override
+	public GmailProfileDto getProfile(String accessToken) throws IOException {
+		Profile profile = gmailFeignClient.getProfile("Bearer " + accessToken);
+		return GmailMapper.toGmailProfileDto(profile);
+	}
 
 	@Override
 	public GmailListThreadsResponseDto listThreads(String accessToken, String query, Long maxResults, String pageToken) throws IOException {

@@ -39,6 +39,17 @@ public class SecurityUtils {
         return client.getAccessToken().getTokenValue();
     }
 
+    public static String getAccessTokenForUser(String registrationId, String email) {
+        if (email == null) return null;
+
+        OAuth2AuthorizeRequest authorizeRequest = OAuth2AuthorizeRequest.withClientRegistrationId(registrationId)
+                .principal(email)
+                .build();
+
+        OAuth2AuthorizedClient client = authorizedClientManager.authorize(authorizeRequest);
+        return (client != null) ? client.getAccessToken().getTokenValue() : null;
+    }
+
     public static OAuth2User getCurrentOAuth2User() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof OAuth2User user) {
