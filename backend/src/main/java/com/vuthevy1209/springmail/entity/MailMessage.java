@@ -37,4 +37,6 @@ public class MailMessage {
     private String bodyHtml;
     
     private String historyId;
+    
+    private java.util.Set<MessageAttachment> attachments;
 }

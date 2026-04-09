@@ -45,3 +45,4 @@ public interface GmailFeignClient {
             @RequestParam(value = "pageToken", required = false) String pageToken
     );
 }
+

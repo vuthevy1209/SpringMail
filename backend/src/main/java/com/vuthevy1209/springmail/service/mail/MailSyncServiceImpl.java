@@ -1,32 +1,37 @@
 package com.vuthevy1209.springmail.service.mail;
 
-import com.google.api.services.gmail.model.*;
-import com.vuthevy1209.springmail.entity.MailMessage;
-import com.vuthevy1209.springmail.entity.MailThread;
-import com.vuthevy1209.springmail.entity.User;
+import com.vuthevy1209.springmail.entity.*;
 import com.vuthevy1209.springmail.repository.MailMessageRepository;
 import com.vuthevy1209.springmail.repository.MailThreadRepository;
 import com.vuthevy1209.springmail.repository.UserRepository;
-import com.vuthevy1209.springmail.service.gmail.GmailClient;
+import com.vuthevy1209.springmail.service.gmail.GmailService;
+import com.vuthevy1209.springmail.service.gmail.GmailMapper;
+import com.vuthevy1209.springmail.service.gmail.dto.history.GmailListHistoryResponseDto;
+import com.vuthevy1209.springmail.service.gmail.dto.message.GmailHeaderDto;
+import com.vuthevy1209.springmail.service.gmail.dto.message.GmailMessageDto;
+import com.vuthevy1209.springmail.service.gmail.dto.message.GmailMessagePartDto;
+import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
+import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class MailSyncServiceImpl implements MailSyncService {
 
-	private final GmailClient gmailClient;
+	private final GmailService gmailClient;
 	private final MailThreadRepository threadRepository;
 	private final MailMessageRepository messageRepository;
 	private final UserRepository userRepository;
+	private final GmailMapper gmailMapper;
 
 	@Override
 	public void sync(User user) throws IOException {
@@ -45,25 +50,25 @@ public class MailSyncServiceImpl implements MailSyncService {
 
 	private void performFullSync(User user, String accessToken) throws IOException {
 		log.info("Performing full sync for user {}", user.getEmail());
-		ListThreadsResponse response = gmailClient.listThreads(accessToken, "in:inbox", 50L, null);
+		GmailListThreadsResponseDto response = gmailClient.listThreads(accessToken, "in:inbox", 50L, null);
 		
 		if (response.getThreads() == null) {
 			return;
 		}
 
-		BigInteger maxHistoryId = BigInteger.ZERO;
+		Long maxHistoryId = 0L;
 
-		for (com.google.api.services.gmail.model.Thread tSnippet : response.getThreads()) {
-			com.google.api.services.gmail.model.Thread fullThread = gmailClient.getThread(accessToken, tSnippet.getId(), "full", null);
+		for (GmailThreadDto tSnippet : response.getThreads()) {
+			GmailThreadDto fullThread = gmailClient.getThread(accessToken, tSnippet.getId(), "full", null);
 			
 			saveThread(fullThread, user.getId());
 			
 			if (fullThread.getHistoryId() != null) {
-				maxHistoryId = maxHistoryId.max(fullThread.getHistoryId());
+				maxHistoryId = Math.max(maxHistoryId, fullThread.getHistoryId());
 			}
 		}
 
-		if (!maxHistoryId.equals(BigInteger.ZERO)) {
+		if (maxHistoryId > 0) {
 			user.setLastHistoryId(maxHistoryId.toString());
 			userRepository.save(user);
 		}
@@ -72,25 +77,28 @@ public class MailSyncServiceImpl implements MailSyncService {
 	private void performIncrementalSync(User user, String accessToken) throws IOException {
 		log.info("Performing incremental sync for user {} starting from historyId {}", user.getEmail(), user.getLastHistoryId());
 		try {
-			ListHistoryResponse historyResponse = gmailClient.listHistory(accessToken, user.getLastHistoryId(), 100L, null);
+			GmailListHistoryResponseDto historyResponse = gmailClient.listHistory(accessToken, user.getLastHistoryId(), 100L, null);
 			
 			if (historyResponse.getHistory() != null) {
-				Set<String> threadIdsToUpdate = new HashSet<>();
-				for (History history : historyResponse.getHistory()) {
-					if (history.getMessagesAdded() != null) {
-						history.getMessagesAdded().forEach(m -> threadIdsToUpdate.add(m.getMessage().getThreadId()));
-					}
-					if (history.getLabelsAdded() != null) {
-						history.getLabelsAdded().forEach(m -> threadIdsToUpdate.add(m.getMessage().getThreadId()));
-					}
-					if (history.getLabelsRemoved() != null) {
-						history.getLabelsRemoved().forEach(m -> threadIdsToUpdate.add(m.getMessage().getThreadId()));
-					}
-				}
+				Set<String> threadIdsToUpdate = historyResponse.getHistory().stream()
+						.flatMap(history -> {
+							Set<String> ids = new HashSet<>();
+							if (history.getMessagesAdded() != null) {
+								history.getMessagesAdded().forEach(m -> ids.add(m.getMessage().getThreadId()));
+							}
+							if (history.getLabelsAdded() != null) {
+								history.getLabelsAdded().forEach(m -> ids.add(m.getMessage().getThreadId()));
+							}
+							if (history.getLabelsRemoved() != null) {
+								history.getLabelsRemoved().forEach(m -> ids.add(m.getMessage().getThreadId()));
+							}
+							return ids.stream();
+						})
+						.collect(Collectors.toSet());
 				
 				for (String threadId : threadIdsToUpdate) {
 					try {
-						com.google.api.services.gmail.model.Thread fullThread = gmailClient.getThread(accessToken, threadId, "full", null);
+						GmailThreadDto fullThread = gmailClient.getThread(accessToken, threadId, "full", null);
 						saveThread(fullThread, user.getId());
 					} catch (IOException e) {
 						log.error("Error fetching thread {} during history sync", threadId, e);
@@ -112,7 +120,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 		}
 	}
 
-	private void saveThread(com.google.api.services.gmail.model.Thread fullThread, String userId) {
+	private void saveThread(GmailThreadDto fullThread, String userId) {
 		Optional<MailThread> existingThread = threadRepository.findById(fullThread.getId());
 		
 		MailThread mailThread;
@@ -136,7 +144,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 		long lastTimestamp = 0;
 
 		if (fullThread.getMessages() != null) {
-			for (Message msg : fullThread.getMessages()) {
+			for (GmailMessageDto msg : fullThread.getMessages()) {
 				MailMessage mailMsg = mapToEntity(msg, userId);
 				messages.add(mailMsg);
 				if (msg.getInternalDate() != null && msg.getInternalDate() > lastTimestamp) {
@@ -150,13 +158,13 @@ public class MailSyncServiceImpl implements MailSyncService {
 		messageRepository.saveAll(messages);
 	}
 
-	private MailMessage mapToEntity(Message msg, String userId) {
+	private MailMessage mapToEntity(GmailMessageDto msg, String userId) {
 		String from = "";
 		String to = "";
 		String subject = "";
 		
 		if (msg.getPayload() != null && msg.getPayload().getHeaders() != null) {
-			for (MessagePartHeader header : msg.getPayload().getHeaders()) {
+			for (GmailHeaderDto header : msg.getPayload().getHeaders()) {
 				if ("From".equalsIgnoreCase(header.getName())) {
 					from = header.getValue();
 				} else if ("To".equalsIgnoreCase(header.getName())) {
@@ -166,6 +174,9 @@ public class MailSyncServiceImpl implements MailSyncService {
 				}
 			}
 		}
+
+		Set<MessageAttachment> attachments = new HashSet<>();
+		extractAttachments(msg.getPayload(), msg.getId(), attachments);
 
 		return MailMessage.builder()
 				.id(msg.getId())
@@ -179,10 +190,49 @@ public class MailSyncServiceImpl implements MailSyncService {
 				.internalDate(msg.getInternalDate())
 				.historyId(msg.getHistoryId() != null ? msg.getHistoryId().toString() : null)
 				.bodyHtml(getMessageBody(msg.getPayload()))
+				.attachments(attachments)
 				.build();
 	}
 
-	private String getMessageBody(MessagePart part) {
+	private void extractAttachments(GmailMessagePartDto part, String messageId, Set<MessageAttachment> attachments) {
+		if (part == null) return;
+
+		String filename = part.getFilename();
+		String attachmentId = part.getBody() != null ? part.getBody().getAttachmentId() : null;
+
+		if (filename != null && !filename.isEmpty() && attachmentId != null) {
+			MessageAttachment attachment = MessageAttachment.builder()
+					.id(attachmentId)
+					.messageId(messageId)
+					.filename(filename)
+					.mimeType(part.getMimeType())
+					.size(part.getBody().getSize() != null ? part.getBody().getSize() : 0L)
+					.contentId(getContentId(part))
+					.build();
+			attachments.add(attachment);
+		}
+
+		if (part.getParts() != null) {
+			for (GmailMessagePartDto subPart : part.getParts()) {
+				extractAttachments(subPart, messageId, attachments);
+			}
+		}
+	}
+
+	private String getContentId(GmailMessagePartDto part) {
+		if (part.getHeaders() == null) return null;
+		for (GmailHeaderDto header : part.getHeaders()) {
+			if ("Content-ID".equalsIgnoreCase(header.getName())) {
+				String cid = header.getValue();
+				if (cid != null) {
+					return cid.replaceAll("[<>]", "");
+				}
+			}
+		}
+		return null;
+	}
+
+	private String getMessageBody(GmailMessagePartDto part) {
 		if (part == null) return "";
 		
 		String htmlContent = extractMimeTypeString(part, "text/html");
@@ -198,13 +248,13 @@ public class MailSyncServiceImpl implements MailSyncService {
 		return "";
 	}
 
-	private String extractMimeTypeString(MessagePart part, String mimeType) {
+	private String extractMimeTypeString(GmailMessagePartDto part, String mimeType) {
 		if (part.getMimeType() != null && part.getMimeType().contains(mimeType) && part.getBody() != null && part.getBody().getData() != null) {
 			return new String(Base64.getUrlDecoder().decode(part.getBody().getData()));
 		}
 
 		if (part.getParts() != null) {
-			for (MessagePart subPart : part.getParts()) {
+			for (GmailMessagePartDto subPart : part.getParts()) {
 				String result = extractMimeTypeString(subPart, mimeType);
 				if (result != null && !result.isEmpty()) {
 					return result;

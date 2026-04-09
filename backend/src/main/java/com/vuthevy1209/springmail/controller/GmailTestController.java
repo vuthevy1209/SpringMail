@@ -1,10 +1,10 @@
 package com.vuthevy1209.springmail.controller;
 
-import com.google.api.services.gmail.model.ListThreadsResponse;
-import com.google.api.services.gmail.model.MessagePartBody;
-import com.google.api.services.gmail.model.Thread;
+import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentBodyDto;
+import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
+import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
 import com.vuthevy1209.springmail.dto.response.ApiResponse;
-import com.vuthevy1209.springmail.service.gmail.GmailClient;
+import com.vuthevy1209.springmail.service.gmail.GmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,41 +16,41 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GmailTestController {
 
-    private final GmailClient gmailClient;
+    private final GmailService gmailClient;
 
     @GetMapping("/threads")
-    public ApiResponse<ListThreadsResponse> listThreads(
+    public ApiResponse<GmailListThreadsResponseDto> listThreads(
         @RequestHeader("Authorization") String authHeader,
         @RequestParam(value = "q", required = false) String query,
         @RequestParam(value = "maxResults", required = false) Long maxResults
     ) throws IOException {
         String accessToken = extractToken(authHeader);
-        return ApiResponse.<ListThreadsResponse>builder()
+        return ApiResponse.<GmailListThreadsResponseDto>builder()
             .result(gmailClient.listThreads(accessToken, query, maxResults, null))
             .build();
     }
 
     @GetMapping("/threads/{id}")
-    public ApiResponse<Thread> getThread(
+    public ApiResponse<GmailThreadDto> getThread(
         @RequestHeader("Authorization") String authHeader,
         @PathVariable("id") String threadId,
         @RequestParam(value = "format", defaultValue = "full") String format,
         @RequestParam(value = "metadataHeaders", required = false) List<String> metadataHeaders
     ) throws IOException {
         String accessToken = extractToken(authHeader);
-        return ApiResponse.<Thread>builder()
+        return ApiResponse.<GmailThreadDto>builder()
             .result(gmailClient.getThread(accessToken, threadId, format, metadataHeaders))
             .build();
     }
 
     @GetMapping("/messages/{messageId}/attachments/{id}")
-    public ApiResponse<MessagePartBody> getAttachment(
+    public ApiResponse<GmailAttachmentBodyDto> getAttachment(
         @RequestHeader("Authorization") String authHeader,
         @PathVariable("messageId") String messageId,
         @PathVariable("id") String attachmentId
     ) throws IOException {
         String accessToken = extractToken(authHeader);
-        return ApiResponse.<MessagePartBody>builder()
+        return ApiResponse.<GmailAttachmentBodyDto>builder()
             .result(gmailClient.getAttachment(accessToken, messageId, attachmentId))
             .build();
     }
