@@ -1,8 +1,12 @@
 package com.vuthevy1209.springmail.service.gmail.feign;
 
+import com.google.api.services.gmail.model.ListHistoryResponse;
+import com.google.api.services.gmail.model.ListThreadsResponse;
+import com.google.api.services.gmail.model.MessagePartBody;
+import com.google.api.services.gmail.model.Thread;
 import com.vuthevy1209.springmail.service.gmail.GmailService;
 import com.vuthevy1209.springmail.service.gmail.GmailMapper;
-import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentBodyDto;
+import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailListHistoryResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
@@ -21,25 +25,25 @@ public class FeignVersionGmailServiceImpl implements GmailService {
 
 	@Override
 	public GmailListThreadsResponseDto listThreads(String accessToken, String query, Long maxResults, String pageToken) throws IOException {
-		var response = gmailFeignClient.listThreads("Bearer " + accessToken, query, maxResults, pageToken);
+		ListThreadsResponse response = gmailFeignClient.listThreads("Bearer " + accessToken, query, maxResults, pageToken);
 		return GmailMapper.toGmailListThreadsResponseDto(response);
 	}
 
 	@Override
 	public GmailThreadDto getThread(String accessToken, String threadId, String format, List<String> metadataHeaders) throws IOException {
-		var thread = gmailFeignClient.getThread("Bearer " + accessToken, threadId, format, metadataHeaders);
+		Thread thread = gmailFeignClient.getThread("Bearer " + accessToken, threadId, format, metadataHeaders);
 		return GmailMapper.toGmailThreadDto(thread);
 	}
 
 	@Override
-	public GmailAttachmentBodyDto getAttachment(String accessToken, String messageId, String attachmentId) throws IOException {
-		var body = gmailFeignClient.getAttachment("Bearer " + accessToken, messageId, attachmentId);
-		return GmailMapper.toGmailAttachmentBodyDto(body);
+	public GmailAttachmentDto getAttachment(String accessToken, String messageId, String attachmentId, String filename, String mimeType) throws IOException {
+		MessagePartBody body = gmailFeignClient.getAttachment("Bearer " + accessToken, messageId, attachmentId);
+		return GmailMapper.toGmailAttachmentDto(body, filename, mimeType);
 	}
 
 	@Override
 	public GmailListHistoryResponseDto listHistory(String accessToken, String startHistoryId, Long maxResults, String pageToken) throws IOException {
-		var response = gmailFeignClient.listHistory("Bearer " + accessToken, startHistoryId, maxResults, pageToken);
+		ListHistoryResponse response = gmailFeignClient.listHistory("Bearer " + accessToken, startHistoryId, maxResults, pageToken);
 		return GmailMapper.toGmailListHistoryResponseDto(response);
 	}
 }

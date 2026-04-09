@@ -7,9 +7,7 @@ import com.vuthevy1209.springmail.repository.UserRepository;
 import com.vuthevy1209.springmail.service.gmail.GmailService;
 import com.vuthevy1209.springmail.service.gmail.GmailMapper;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailListHistoryResponseDto;
-import com.vuthevy1209.springmail.service.gmail.dto.message.GmailHeaderDto;
 import com.vuthevy1209.springmail.service.gmail.dto.message.GmailMessageDto;
-import com.vuthevy1209.springmail.service.gmail.dto.message.GmailMessagePartDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
@@ -158,24 +156,19 @@ public class MailSyncServiceImpl implements MailSyncService {
 	}
 
 	private MailMessage mapToEntity(GmailMessageDto msg, String userId) {
-		String from = "";
-		String to = "";
-		String subject = "";
-		
-		if (msg.getPayload() != null && msg.getPayload().getHeaders() != null) {
-			for (GmailHeaderDto header : msg.getPayload().getHeaders()) {
-				if ("From".equalsIgnoreCase(header.getName())) {
-					from = header.getValue();
-				} else if ("To".equalsIgnoreCase(header.getName())) {
-					to = header.getValue();
-				} else if ("Subject".equalsIgnoreCase(header.getName())) {
-					subject = header.getValue();
-				}
+		Set<MessageAttachment> attachments = new HashSet<>();
+		if (msg.getAttachments() != null) {
+			for (var attDto : msg.getAttachments()) {
+				attachments.add(MessageAttachment.builder()
+						.id(attDto.getAttachmentId())
+						.messageId(msg.getId())
+						.filename(attDto.getFilename())
+						.mimeType(attDto.getMimeType())
+						.size(attDto.getSize() != null ? attDto.getSize() : 0L)
+						.contentId(attDto.getContentId())
+						.build());
 			}
 		}
-
-		Set<MessageAttachment> attachments = new HashSet<>();
-		extractAttachments(msg.getPayload(), msg.getId(), attachments);
 
 		return MailMessage.builder()
 				.id(msg.getId())
@@ -183,83 +176,17 @@ public class MailSyncServiceImpl implements MailSyncService {
 				.userId(userId)
 				.labelIds(msg.getLabelIds() != null ? new HashSet<>(msg.getLabelIds()) : new HashSet<>())
 				.snippet(msg.getSnippet())
-				.subject(subject)
-				.from(from)
-				.to(to)
+				.subject(msg.getSubject())
+				.from(msg.getFromName() != null && !msg.getFromName().isEmpty()
+						? msg.getFromName() + " <" + msg.getFromEmail() + ">"
+						: msg.getFromEmail())
+				.to(msg.getToName() != null && !msg.getToName().isEmpty()
+						? msg.getToName() + " <" + msg.getToEmail() + ">"
+						: msg.getToEmail())
 				.internalDate(msg.getInternalDate())
 				.historyId(msg.getHistoryId() != null ? msg.getHistoryId().toString() : null)
-				.bodyHtml(getMessageBody(msg.getPayload()))
+				.bodyHtml(msg.getBodyHtml())
 				.attachments(attachments)
 				.build();
-	}
-
-	private void extractAttachments(GmailMessagePartDto part, String messageId, Set<MessageAttachment> attachments) {
-		if (part == null) return;
-
-		String filename = part.getFilename();
-		String attachmentId = part.getBody() != null ? part.getBody().getAttachmentId() : null;
-
-		if (filename != null && !filename.isEmpty() && attachmentId != null) {
-			MessageAttachment attachment = MessageAttachment.builder()
-					.id(attachmentId)
-					.messageId(messageId)
-					.filename(filename)
-					.mimeType(part.getMimeType())
-					.size(part.getBody().getSize() != null ? part.getBody().getSize() : 0L)
-					.contentId(getContentId(part))
-					.build();
-			attachments.add(attachment);
-		}
-
-		if (part.getParts() != null) {
-			for (GmailMessagePartDto subPart : part.getParts()) {
-				extractAttachments(subPart, messageId, attachments);
-			}
-		}
-	}
-
-	private String getContentId(GmailMessagePartDto part) {
-		if (part.getHeaders() == null) return null;
-		for (GmailHeaderDto header : part.getHeaders()) {
-			if ("Content-ID".equalsIgnoreCase(header.getName())) {
-				String cid = header.getValue();
-				if (cid != null) {
-					return cid.replaceAll("[<>]", "");
-				}
-			}
-		}
-		return null;
-	}
-
-	private String getMessageBody(GmailMessagePartDto part) {
-		if (part == null) return "";
-		
-		String htmlContent = extractMimeTypeString(part, "text/html");
-		if (htmlContent != null && !htmlContent.isEmpty()) {
-			return htmlContent;
-		}
-
-		String plainContent = extractMimeTypeString(part, "text/plain");
-		if (plainContent != null && !plainContent.isEmpty()) {
-			return plainContent;
-		}
-
-		return "";
-	}
-
-	private String extractMimeTypeString(GmailMessagePartDto part, String mimeType) {
-		if (part.getMimeType() != null && part.getMimeType().contains(mimeType) && part.getBody() != null && part.getBody().getData() != null) {
-			return new String(Base64.getUrlDecoder().decode(part.getBody().getData()));
-		}
-
-		if (part.getParts() != null) {
-			for (GmailMessagePartDto subPart : part.getParts()) {
-				String result = extractMimeTypeString(subPart, mimeType);
-				if (result != null && !result.isEmpty()) {
-					return result;
-				}
-			}
-		}
-		return null;
 	}
 }

@@ -34,5 +34,4 @@ public class GmailMessageDto {
 	private Long sizeEstimate;
 	private String raw;
 	private List<GmailAttachmentDto> attachments;
-	private GmailMessagePartDto payload;
 }

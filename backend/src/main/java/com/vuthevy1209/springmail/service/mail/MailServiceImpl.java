@@ -3,7 +3,7 @@ package com.vuthevy1209.springmail.service.mail;
 import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
 import com.vuthevy1209.springmail.service.gmail.GmailMapper;
 import com.vuthevy1209.springmail.service.gmail.GmailService;
-import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentBodyDto;
+import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 @Service
@@ -46,9 +45,7 @@ public class MailServiceImpl implements MailService {
                 GmailThreadDto fullThread = gmailService.getThread(accessToken, threadSnippet.getId(), "metadata", List.of("Subject", "Date", "From"));
                 
                 // Sử dụng GmailMapper để làm giàu dữ liệu (bóc tách headers)
-                if (fullThread.getMessages() != null) {
-                    fullThread.getMessages().forEach(GmailMapper::enrichGmailMessageDto);
-                }
+
 
                 // Map sang MailThreadResponse (messages list rỗng cho danh sách recent)
                 MailThreadResponse threadResponse = GmailMapper.toMailThreadResponse(fullThread);
@@ -88,8 +85,7 @@ public class MailServiceImpl implements MailService {
         if (fullThread.getMessages() != null) {
             // Đảm bảo tin nhắn được sắp xếp chuẩn theo thời gian (cũ -> mới)
             fullThread.getMessages().sort((m1, m2) -> Long.compare(m1.getInternalDate(), m2.getInternalDate()));
-            // Làm giàu dữ liệu cho từng tin nhắn (bóc tách body, headers, attachments)
-            fullThread.getMessages().forEach(GmailMapper::enrichGmailMessageDto);
+
         }
 
         return GmailMapper.toMailThreadResponse(fullThread);
@@ -113,15 +109,13 @@ public class MailServiceImpl implements MailService {
         return base;
     }
 
-    @Override
-    public byte[] getAttachment(String messageId, String attachmentId) throws IOException {
-        String accessToken = SecurityUtils.getAccessToken("google");
-        if (accessToken == null) {
-            throw new IOException("Failed to authorize OAuth2 client or get access token");
-        }
+	@Override
+	public GmailAttachmentDto getAttachment(String messageId, String attachmentId, String filename, String mimeType) throws IOException {
+		String accessToken = SecurityUtils.getAccessToken("google");
+		if (accessToken == null) {
+			throw new IOException("Failed to authorize OAuth2 client or get access token");
+		}
 
-        GmailAttachmentBodyDto attachment = gmailService.getAttachment(accessToken, messageId, attachmentId);
-
-        return Base64.getUrlDecoder().decode(attachment.getData());
-    }
+		return gmailService.getAttachment(accessToken, messageId, attachmentId, filename, mimeType);
+	}
 }

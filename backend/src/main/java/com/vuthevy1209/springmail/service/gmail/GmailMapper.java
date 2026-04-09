@@ -11,10 +11,10 @@ import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.MessagePart;
 import com.google.api.services.gmail.model.MessagePartBody;
 import com.google.api.services.gmail.model.MessagePartHeader;
+import com.google.api.services.gmail.model.Thread;
 import com.vuthevy1209.springmail.dto.response.mail.MailAttachmentResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
-import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentBodyDto;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailHistoryDto;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailHistoryLabelAddedDto;
@@ -22,13 +22,10 @@ import com.vuthevy1209.springmail.service.gmail.dto.history.GmailHistoryLabelRem
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailHistoryMessageAddedDto;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailHistoryMessageDeletedDto;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailListHistoryResponseDto;
-import com.vuthevy1209.springmail.service.gmail.dto.message.GmailHeaderDto;
-import com.vuthevy1209.springmail.service.gmail.dto.message.GmailMessageBodyDto;
 import com.vuthevy1209.springmail.service.gmail.dto.message.GmailMessageDto;
-import com.vuthevy1209.springmail.service.gmail.dto.message.GmailMessagePartDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
-import java.math.BigInteger;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -40,10 +37,7 @@ import java.util.stream.Collectors;
 
 public class GmailMapper {
 
-	public static GmailListThreadsResponseDto toGmailListThreadsResponseDto(GmailListThreadsResponseDto response) {
-		return response;
-	}
-
+	// verified
 	public static GmailListThreadsResponseDto toGmailListThreadsResponseDto(ListThreadsResponse response) {
 		if (response == null) {
 			return null;
@@ -57,11 +51,8 @@ public class GmailMapper {
 				.build();
 	}
 
-	public static GmailThreadDto toGmailThreadDto(GmailThreadDto thread) {
-		return thread;
-	}
-
-	public static GmailThreadDto toGmailThreadDto(com.google.api.services.gmail.model.Thread thread) {
+	// verified
+	public static GmailThreadDto toGmailThreadDto(Thread thread) {
 		if (thread == null) {
 			return null;
 		}
@@ -75,15 +66,12 @@ public class GmailMapper {
 				.build();
 	}
 
-	public static GmailMessageDto toGmailMessageDto(GmailMessageDto message) {
-		return message;
-	}
-
+	// verified
 	public static GmailMessageDto toGmailMessageDto(Message message) {
 		if (message == null) {
 			return null;
 		}
-		return GmailMessageDto.builder()
+		GmailMessageDto dto = GmailMessageDto.builder()
 				.id(message.getId())
 				.threadId(message.getThreadId())
 				.snippet(message.getSnippet())
@@ -92,64 +80,134 @@ public class GmailMapper {
 				.labelIds(message.getLabelIds())
 				.sizeEstimate(message.getSizeEstimate() != null ? message.getSizeEstimate().longValue() : null)
 				.raw(message.getRaw())
-				.payload(toGmailMessagePartDto(message.getPayload()))
 				.build();
-	}
 
-	public static GmailMessagePartDto toGmailMessagePartDto(GmailMessagePartDto part) {
-		return part;
-	}
-
-	public static GmailMessagePartDto toGmailMessagePartDto(MessagePart part) {
-		if (part == null) {
-			return null;
+		if (message.getPayload() == null) {
+			return dto;
 		}
-		return GmailMessagePartDto.builder()
-				.partId(part.getPartId())
-				.mimeType(part.getMimeType())
-				.filename(part.getFilename())
-				.headers(part.getHeaders() != null ? part.getHeaders().stream()
-						.map(GmailMapper::toGmailHeaderDto)
-						.collect(Collectors.toList()) : null)
-				.body(toGmailMessageBodyDto(part.getBody()))
-				.parts(part.getParts() != null ? part.getParts().stream()
-						.map(GmailMapper::toGmailMessagePartDto)
-						.collect(Collectors.toList()) : null)
-				.build();
+
+		// extract headers, body, and attachments
+		StringBuilder htmlBuilder = new StringBuilder();
+		StringBuilder textBuilder = new StringBuilder();
+		List<GmailAttachmentDto> attachments = new ArrayList<>();
+
+		extractHeader(message, dto);
+		extractBodyAndAttachment(message.getPayload(), htmlBuilder, textBuilder, attachments);
+
+		dto.setBodyHtml(htmlBuilder.toString());
+		dto.setBodyText(textBuilder.toString());
+		dto.setAttachments(attachments);
+
+		return dto;
 	}
 
-	public static GmailHeaderDto toGmailHeaderDto(MessagePartHeader header) {
-		if (header == null) {
-			return null;
+	// verified
+	private static void extractHeader(Message message, GmailMessageDto dto) {
+		if (message.getPayload().getHeaders() == null) {
+			return;
 		}
-		return GmailHeaderDto.builder()
-				.name(header.getName())
-				.value(header.getValue())
-				.build();
+
+		for (MessagePartHeader header : message.getPayload().getHeaders()) {
+			String name = header.getName();
+			String value = header.getValue();
+
+			if ("From".equalsIgnoreCase(name)) {
+				dto.setFromName(extractName(value));
+				dto.setFromEmail(extractEmail(value));
+			} else if ("To".equalsIgnoreCase(name)) {
+				dto.setToName(extractName(value));
+				dto.setToEmail(extractEmail(value));
+			} else if ("Cc".equalsIgnoreCase(name)) {
+				dto.setCc(extractEmailList(value));
+			} else if ("Bcc".equalsIgnoreCase(name)) {
+				dto.setBcc(extractEmailList(value));
+			} else if ("Subject".equalsIgnoreCase(name)) {
+				dto.setSubject(value);
+			} else if ("Date".equalsIgnoreCase(name)) {
+				dto.setDateString(value);
+			}
+		}
 	}
 
-	public static GmailMessageBodyDto toGmailMessageBodyDto(MessagePartBody body) {
+	// verified
+	private static void extractBodyAndAttachment(MessagePart part, StringBuilder htmlBuilder, StringBuilder textBuilder, List<GmailAttachmentDto> attachments) {
+		if (part == null) return;
+
+		String mimeType = part.getMimeType();
+		String filename = part.getFilename();
+		MessagePartBody body = part.getBody();
+
+		// Attachment check
+		if (filename != null && !filename.isEmpty() && body != null && body.getAttachmentId() != null) {
+			attachments.add(GmailAttachmentDto.builder()
+					.attachmentId(body.getAttachmentId())
+					.filename(filename)
+					.mimeType(mimeType)
+					.size(body.getSize() != null ? (long) body.getSize() : null)
+					.contentId(getContentId(part))
+					.build());
+		}
+
+		// Body content
+		if (body != null && body.getData() != null) {
+			try {
+				byte[] decodedBytes = Base64.getUrlDecoder().decode(body.getData());
+				String decodedData = new String(decodedBytes, StandardCharsets.UTF_8);
+				if ("text/html".equalsIgnoreCase(mimeType)) {
+					htmlBuilder.append(decodedData);
+				} else if ("text/plain".equalsIgnoreCase(mimeType)) {
+					textBuilder.append(decodedData);
+				}
+			} catch (Exception e) {
+				// Log or ignore malformed data
+			}
+		}
+
+		// Recursive for multipart
+		if (part.getParts() != null) {
+			for (MessagePart subPart : part.getParts()) {
+				extractBodyAndAttachment(subPart, htmlBuilder, textBuilder, attachments);
+			}
+		}
+	}
+
+	// verified
+	private static String getContentId(MessagePart part) {
+		if (part.getHeaders() == null) return null;
+		for (MessagePartHeader header : part.getHeaders()) {
+			if ("Content-ID".equalsIgnoreCase(header.getName())) {
+				String value = header.getValue();
+				if (value != null) {
+					// Remove angle brackets if present
+					if (value.startsWith("<") && value.endsWith(">")) {
+						return value.substring(1, value.length() - 1);
+					}
+					return value;
+				}
+			}
+		}
+		return null;
+	}
+
+
+	// verified
+	public static GmailAttachmentDto toGmailAttachmentDto(MessagePartBody body, String filename, String mimeType) {
 		if (body == null) {
 			return null;
 		}
-		return GmailMessageBodyDto.builder()
-				.data(body.getData())
+
+		return GmailAttachmentDto.builder()
 				.attachmentId(body.getAttachmentId())
+				.filename(filename)
+				.mimeType(mimeType)
+				.data(body.getData())
 				.size(body.getSize() != null ? body.getSize().longValue() : null)
 				.build();
 	}
 
-	public static GmailAttachmentBodyDto toGmailAttachmentBodyDto(MessagePartBody body) {
-		if (body == null) {
-			return null;
-		}
-		return GmailAttachmentBodyDto.builder()
-				.data(body.getData())
-				.attachmentId(body.getAttachmentId())
-				.size(body.getSize() != null ? body.getSize().longValue() : null)
-				.build();
-	}
 
+
+    // Not verified
 	public static GmailListHistoryResponseDto toGmailListHistoryResponseDto(ListHistoryResponse response) {
 		if (response == null) {
 			return null;
@@ -225,84 +283,6 @@ public class GmailMapper {
 				.build();
 	}
 
-	public static GmailListHistoryResponseDto toGmailListHistoryResponseDto(GmailListHistoryResponseDto response) {
-		return response;
-	}
-
-	public static GmailAttachmentBodyDto toGmailAttachmentBodyDto(GmailAttachmentBodyDto body) {
-		return body;
-	}
-
-	public static void enrichGmailMessageDto(GmailMessageDto message) {
-		if (message.getPayload() == null) return;
-
-		// 1. Headers bóc tách
-		if (message.getPayload().getHeaders() != null) {
-			for (GmailHeaderDto header : message.getPayload().getHeaders()) {
-				String name = header.getName();
-				String value = header.getValue();
-
-				if ("From".equalsIgnoreCase(name)) {
-					message.setFromName(extractName(value));
-					message.setFromEmail(extractEmail(value));
-				} else if ("To".equalsIgnoreCase(name)) {
-					message.setToName(extractName(value));
-					message.setToEmail(extractEmail(value));
-				} else if ("Subject".equalsIgnoreCase(name)) {
-					message.setSubject(value);
-				} else if ("Date".equalsIgnoreCase(name)) {
-					message.setDateString(value);
-				}
-			}
-		}
-
-		// 2. Nội dung (Body) và Đính kèm (Attachments)
-		StringBuilder htmlBuilder = new StringBuilder();
-		StringBuilder textBuilder = new StringBuilder();
-		List<GmailAttachmentDto> attachments = new ArrayList<>();
-
-		processParts(message.getPayload(), htmlBuilder, textBuilder, attachments);
-
-		message.setBodyHtml(htmlBuilder.toString());
-		message.setBodyText(textBuilder.toString());
-		message.setAttachments(attachments);
-	}
-
-	private static void processParts(GmailMessagePartDto part, StringBuilder htmlBody, StringBuilder textBody, List<GmailAttachmentDto> attachments) {
-		if (part == null) return;
-
-		String mimeType = part.getMimeType();
-		String filename = part.getFilename();
-		var body = part.getBody();
-
-		// Attachment check
-		if (filename != null && !filename.isEmpty() && body != null && body.getAttachmentId() != null) {
-			attachments.add(GmailAttachmentDto.builder()
-					.attachmentId(body.getAttachmentId())
-					.filename(filename)
-					.mimeType(mimeType)
-					.size(body.getSize() != null ? body.getSize().longValue() : null)
-					.build());
-		}
-
-		// Body content
-		if (body != null && body.getData() != null) {
-			String decodedData = new String(Base64.getUrlDecoder().decode(body.getData()), StandardCharsets.UTF_8);
-			if ("text/html".equalsIgnoreCase(mimeType)) {
-				htmlBody.append(decodedData);
-			} else if ("text/plain".equalsIgnoreCase(mimeType)) {
-				textBody.append(decodedData);
-			}
-		}
-
-		// Recursive for multi-part
-		if (part.getParts() != null) {
-			for (GmailMessagePartDto subPart : part.getParts()) {
-				processParts(subPart, htmlBody, textBody, attachments);
-			}
-		}
-	}
-
 	private static String extractName(String raw) {
 		if (raw == null) return null;
 		int bracketIndex = raw.indexOf('<');
@@ -320,6 +300,16 @@ public class GmailMapper {
 			return matcher.group(1);
 		}
 		return raw;
+	}
+
+	private static List<String> extractEmailList(String raw) {
+		if (raw == null || raw.isEmpty()) return Collections.emptyList();
+		String[] parts = raw.split(",");
+		List<String> emails = new ArrayList<>();
+		for (String part : parts) {
+			emails.add(extractEmail(part.trim()));
+		}
+		return emails;
 	}
 
 	public static MailThreadResponse toMailThreadResponse(GmailThreadDto thread) {

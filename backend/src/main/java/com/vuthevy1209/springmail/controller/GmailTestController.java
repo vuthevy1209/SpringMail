@@ -1,14 +1,18 @@
 package com.vuthevy1209.springmail.controller;
 
-import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentBodyDto;
+import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
 import com.vuthevy1209.springmail.dto.response.ApiResponse;
 import com.vuthevy1209.springmail.service.gmail.GmailService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 
 @RestController
@@ -44,15 +48,21 @@ public class GmailTestController {
     }
 
     @GetMapping("/messages/{messageId}/attachments/{id}")
-    public ApiResponse<GmailAttachmentBodyDto> getAttachment(
+    public ResponseEntity<byte[]> getAttachment(
         @RequestHeader("Authorization") String authHeader,
         @PathVariable("messageId") String messageId,
         @PathVariable("id") String attachmentId
     ) throws IOException {
         String accessToken = extractToken(authHeader);
-        return ApiResponse.<GmailAttachmentBodyDto>builder()
-            .result(gmailClient.getAttachment(accessToken, messageId, attachmentId))
-            .build();
+        GmailAttachmentDto attachment = gmailClient.getAttachment(accessToken, messageId, attachmentId, "test", "text/plain");
+
+        byte[] data = Base64.getUrlDecoder().decode(attachment.getData());
+
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + attachment.getFilename() + "\"")
+            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .contentLength(data.length)
+            .body(data);
     }
 
     private String extractToken(String authHeader) {

@@ -14,4 +14,6 @@ public class GmailAttachmentDto {
 	private String filename;
 	private String mimeType;
 	private Long size;
+	private String contentId;
+	private String data; // Base64 encoded
 }
