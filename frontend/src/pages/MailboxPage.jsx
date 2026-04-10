@@ -22,18 +22,10 @@ export default function MailboxPage({ folder }) {
 	// For inbox only — which category tab is active
 	const [activeTab, setActiveTab] = useState('primary');
 
-	// Sync emails on mount
-	useEffect(() => {
-		const syncEmails = async () => {
-			try {
-				await mailService.sync();
-				console.log("Sync triggered successfully");
-			} catch (error) {
-				console.error("Failed to trigger sync:", error);
-			}
-		};
-		syncEmails();
-	}, []);
+	// Filter unread only
+	const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+
+
 
 	// Fetch emails whenever folder changes or inbox tab changes
 	useEffect(() => {
@@ -44,6 +36,7 @@ export default function MailboxPage({ folder }) {
 			setSelectedThreadId(null);
 			setSelectedThreadData(null);
 			setIsLoadingThreads(true);
+			setShowUnreadOnly(false); // Reset filter when switching folders
 
 			try {
 				const data = await mailService.fetchEmails(folder, activeTab, controller.signal);
@@ -100,16 +93,22 @@ export default function MailboxPage({ folder }) {
 		};
 	}, [selectedThreadId]);
 
+	const displayThreads = showUnreadOnly 
+		? threads.filter(t => !t.isRead) 
+		: threads;
+
 	return (
 		<>
 			<InboxList
 				folder={folder}
-				threads={threads}
+				threads={displayThreads}
 				isLoading={isLoadingThreads}
 				selectedThreadId={selectedThreadId}
 				onSelectThread={setSelectedThreadId}
 				activeTab={activeTab}
 				onTabChange={setActiveTab}
+				showUnreadOnly={showUnreadOnly}
+				onToggleUnread={() => setShowUnreadOnly(!showUnreadOnly)}
 			/>
 			<EmailReader
 				folder={folder}

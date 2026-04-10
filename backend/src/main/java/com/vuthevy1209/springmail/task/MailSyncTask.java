@@ -24,27 +24,28 @@ public class MailSyncTask {
 	 */
 	@Scheduled(fixedDelay = 15 * 60 * 1000)
 	public void scheduleIncrementalSync() {
-		log.info("Starting scheduled incremental sync for all users");
-		List<User> users = userRepository.findAll();
-
-		for (User user : users) {
-			if (user.getLastHistoryId() == null) {
-				log.info("Skipping background sync for user {} (no initial sync yet)", user.getEmail());
-				continue;
-			}
-
-			try {
-				String accessToken = SecurityUtils.getAccessTokenForUser("google", user.getEmail());
-				if (accessToken != null) {
-					mailSyncService.syncMail(user, accessToken);
-					log.info("Background sync completed for user {}", user.getEmail());
-				} else {
-					log.warn("Could not retrieve access token for background sync for user {}", user.getEmail());
-				}
-			} catch (Exception e) {
-				log.error("Failed to perform background sync for user {}", user.getEmail(), e);
-			}
-		}
-		log.info("Finished scheduled incremental sync");
+//		log.info("Starting scheduled incremental sync for all users");
+//		List<User> users = userRepository.findAll();
+//
+//		for (User user : users) {
+//			if (user.getLastHistoryId() == null) {
+//				log.info("Skipping background sync for user {} (no initial sync yet)", user.getEmail());
+//				continue;
+//			}
+//
+//			try {
+//				String accessToken = SecurityUtils.getAccessTokenForUser("google", user.getEmail());
+//				if (accessToken != null) {
+//					mailSyncService.syncMail(user, accessToken);
+//					log.info("Background sync completed for user {}", user.getEmail());
+//				} else {
+//					log.warn("Could not retrieve access token for background sync for user {}", user.getEmail());
+//				}
+//			} catch (Exception e) {
+//				log.error("Failed to perform background sync for user {}", user.getEmail(), e);
+//			}
+//		}
+//		log.info("Finished scheduled incremental sync");
+		log.info("Scheduled incremental sync will be implemented in the future. This is a placeholder for the scheduled task.");
 	}
 }

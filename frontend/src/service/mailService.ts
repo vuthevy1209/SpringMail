@@ -29,10 +29,6 @@ class MailService {
         URL.revokeObjectURL(link.href);
     }
 
-    async sync(signal?: AbortSignal) {
-        const response = await api.post('/sync', {}, { signal });
-        return response.data.result;
-    }
 }
 
 export default new MailService();

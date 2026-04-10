@@ -1,10 +1,14 @@
 package com.vuthevy1209.springmail.service.mail;
 
+import com.vuthevy1209.springmail.dto.response.mail.MailResponse;
 import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
+import com.vuthevy1209.springmail.entity.MailMessage;
 import com.vuthevy1209.springmail.entity.MailThread;
+import com.vuthevy1209.springmail.repository.MailMessageRepository;
 import com.vuthevy1209.springmail.repository.MailThreadRepository;
 import com.vuthevy1209.springmail.repository.UserRepository;
-import com.vuthevy1209.springmail.service.gmail.GmailMapper;
+import com.vuthevy1209.springmail.converters.MailMessageConverter;
+import com.vuthevy1209.springmail.converters.MailThreadConverter;
 import com.vuthevy1209.springmail.service.gmail.GmailService;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
@@ -17,7 +21,10 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -26,7 +33,11 @@ public class MailServiceImpl implements MailService {
 
 	private final GmailService gmailService;
 	private final MailThreadRepository threadRepository;
+	private final MailMessageRepository messageRepository;
 	private final UserRepository userRepository;
+	private final MailThreadConverter mailThreadConverter;
+	private final MailMessageConverter mailMessageConverter;
+	private final MailSyncService mailSyncService;
 
 	// -------------------------------------------------------------------------
 	// Gmail label constants for DB filtering
@@ -42,13 +53,14 @@ public class MailServiceImpl implements MailService {
 	private static final String LABEL_CATEGORY_UPDATES = "CATEGORY_UPDATES";
 
 	@Override
-	public List<MailThreadResponse> getRecentEmails(String folder, String category) throws IOException {
+	public List<MailThreadResponse> getMailThreads(String folder, String category) throws IOException {
 
 		// 1. Xác định userId hiện tại
 		OAuth2User oauth2User = SecurityUtils.getCurrentOAuth2User();
 		if (oauth2User == null) {
 			throw new IOException("User not authenticated");
 		}
+
 		String email = oauth2User.getAttribute("email");
 		var userOpt = userRepository.findByEmail(email);
 		if (userOpt.isEmpty()) {
@@ -71,23 +83,25 @@ public class MailServiceImpl implements MailService {
 
 		// 5. Map sang MailThreadResponse (messages list rỗng cho danh sách)
 		return threads.stream()
-				.map(thread -> new MailThreadResponse(
-						thread.getId(),
-						thread.getSubject(),
-						thread.getSnippet(),
-						thread.getLastMessageTimestamp() != null
-								? formatTimestamp(thread.getLastMessageTimestamp()) : null,
-						thread.getLatestSenderName(),
-						thread.getLabelIds() != null && thread.getLabelIds().contains(LABEL_UNREAD),
-						thread.getMessageCount(),
-						thread.getLastMessageTimestamp(),
-						new ArrayList<>()
-				))
+				.map(thread -> mailThreadConverter.toMailThreadResponse(thread, null))
 				.toList();
 	}
 
 	@Override
 	public MailThreadResponse getThreadDetails(String threadId) throws IOException {
+		// 1. Check DB first
+		Optional<MailThread> threadOpt = threadRepository.findById(threadId);
+		if (threadOpt.isPresent()) {
+			List<MailMessage> messages = messageRepository.findByThreadId(threadId);
+			if (!messages.isEmpty()) {
+				log.info("Fetching thread {} from DB with {} messages", threadId, messages.size());
+				// Đảm bảo tin nhắn được sắp xếp chuẩn theo thời gian (cũ → mới)
+				messages.sort((m1, m2) -> Long.compare(m1.getInternalDate(), m2.getInternalDate()));
+				return mailThreadConverter.toMailThreadResponse(threadOpt.get(), messages);
+			}
+		}
+
+		// 2. Fallback to API
 		String accessToken = SecurityUtils.getAccessToken("google");
 		if (accessToken == null) {
 			throw new IOException("Failed to authorize OAuth2 client or get access token");
@@ -101,7 +115,7 @@ public class MailServiceImpl implements MailService {
 			fullThread.getMessages().sort((m1, m2) -> Long.compare(m1.getInternalDate(), m2.getInternalDate()));
 		}
 
-		return GmailMapper.toMailThreadResponse(fullThread);
+		return mailThreadConverter.toMailThreadResponse(fullThread);
 	}
 
 	@Override
@@ -112,6 +126,24 @@ public class MailServiceImpl implements MailService {
 		}
 
 		return gmailService.getAttachment(accessToken, messageId, attachmentId, filename, mimeType);
+	}
+
+	@Override
+	public void syncMail() throws IOException {
+		OAuth2User oauth2User = SecurityUtils.getCurrentOAuth2User();
+		if (oauth2User == null) {
+			throw new IOException("User not authenticated");
+		}
+		String email = oauth2User.getAttribute("email");
+		com.vuthevy1209.springmail.entity.User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new IOException("User not found: " + email));
+
+		String accessToken = SecurityUtils.getAccessToken("google");
+		if (accessToken == null) {
+			throw new IOException("No access token found for google");
+		}
+		
+		mailSyncService.syncMail(user, accessToken);
 	}
 
 	// -------------------------------------------------------------------------
@@ -129,7 +161,7 @@ public class MailServiceImpl implements MailService {
 
 		if (primaryLabel != null) {
 			threads = threadRepository
-					.findByUserIdAndLabelIdsContainingOrderByLastMessageTimestampDesc(userId, primaryLabel);
+					.findByUserIdAndLabelIdsInOrderByLastMessageTimestampDesc(userId, List.of(primaryLabel));
 		} else {
 			threads = threadRepository.findByUserIdOrderByLastMessageTimestampDesc(userId);
 		}
@@ -165,19 +197,9 @@ public class MailServiceImpl implements MailService {
 						accessToken, threadSnippet.getId(), "metadata",
 						List.of("Subject", "Date", "From"));
 
-				MailThreadResponse threadResponse = GmailMapper.toMailThreadResponse(fullThread);
+				MailThreadResponse threadResponse = mailThreadConverter.toMailThreadResponse(fullThread);
 				if (threadResponse != null) {
-					threadResponses.add(new MailThreadResponse(
-							threadResponse.id(),
-							threadResponse.subject(),
-							threadResponse.snippet(),
-							threadResponse.latestDate(),
-							threadResponse.latestSenderName(),
-							threadResponse.unread(),
-							threadResponse.messageCount(),
-							threadResponse.internalDate(),
-							new ArrayList<>()
-					));
+					threadResponses.add(mailThreadConverter.toShallowResponse(threadResponse));
 				}
 			}
 		}
@@ -231,36 +253,5 @@ public class MailServiceImpl implements MailService {
 		return base;
 	}
 
-	/**
-	 * Format Unix timestamp (milliseconds) thành chuỗi ngày hiển thị.
-	 * Trả về chuỗi ngắn gọn theo múi giờ hệ thống.
-	 */
-	private String formatTimestamp(long timestampMs) {
-		java.time.Instant instant = java.time.Instant.ofEpochMilli(timestampMs);
-		java.time.LocalDate today = java.time.LocalDate.now();
-		java.time.LocalDate msgDate = instant
-				.atZone(java.time.ZoneId.systemDefault())
-				.toLocalDate();
-
-		if (msgDate.equals(today)) {
-			// Hôm nay: hiển thị giờ
-			return java.time.format.DateTimeFormatter
-					.ofPattern("HH:mm")
-					.withZone(java.time.ZoneId.systemDefault())
-					.format(instant);
-		} else if (msgDate.getYear() == today.getYear()) {
-			// Cùng năm: hiển thị ngày/tháng
-			return java.time.format.DateTimeFormatter
-					.ofPattern("d/M")
-					.withZone(java.time.ZoneId.systemDefault())
-					.format(instant);
-		} else {
-			// Năm khác: hiển thị ngày/tháng/năm
-			return java.time.format.DateTimeFormatter
-					.ofPattern("d/M/yyyy")
-					.withZone(java.time.ZoneId.systemDefault())
-					.format(instant);
-		}
-	}
 }
 

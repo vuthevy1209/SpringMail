@@ -27,7 +27,7 @@ export default function EmailReader({ selectedThread, isLoading }) {
             {/* LLM Actions Toolbar */}
             <div className="px-6 py-4 border-b border-whisper/50 flex gap-3 bg-pure-surface">
                 <button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors">
-                    <Sparkles size={16} className="text-emerald-accent" />
+                    <Sparkles size={16} className="text-spring-green" />
                     Summarize Thread
                 </button>
                 <button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors">
@@ -99,7 +99,7 @@ export default function EmailReader({ selectedThread, isLoading }) {
                                                     rel="noopener noreferrer"
                                                     className="flex items-center gap-2 px-3 py-2 border border-whisper/50 rounded-lg bg-canvas-gray text-[12px] text-charcoal-ink shadow-sm hover:bg-whisper/30 transition-colors"
                                                 >
-                                                    <FileText size={14} className="text-emerald-accent" />
+                                                    <FileText size={14} className="text-spring-green" />
                                                     <span className="max-w-[200px] truncate" title={att.filename}>{att.filename}</span>
                                                 </a>
                                             ))}

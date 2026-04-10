@@ -1,4 +1,4 @@
-import { Search, Inbox, Users, Tag, Info } from 'lucide-react';
+import { Search, Inbox, Users, Tag, Info, Filter } from 'lucide-react';
 import ThreadItem from './ThreadItem';
 import InboxListSkeleton from './InboxListSkeleton';
 import { LAYOUT } from '../../constants/layout';
@@ -10,13 +10,18 @@ export default function InboxList({
     threads = [], 
     isLoading = false, 
     activeTab = 'primary', 
-    onTabChange 
+    onTabChange,
+    showUnreadOnly = false,
+    onToggleUnread
 }) {
     const folderTitle = {
-        inbox:  'Inbox',
-        sent:   'Sent',
-        drafts: 'Drafts',
-        trash:  'Trash',
+        inbox:     'Inbox',
+        starred:   'Starred',
+        important: 'Important',
+        sent:      'Sent',
+        drafts:    'Drafts',
+        spam:      'Spam',
+        trash:     'Trash',
     }[folder] ?? 'Inbox';
 
     const tabs = [
@@ -31,13 +36,28 @@ export default function InboxList({
 
             {/* Header & Search */}
             <div className="px-5 pt-6 pb-4 border-b border-whisper/50">
-                <h2 className="text-xl text-charcoal-ink mb-4">{folderTitle}</h2>
-                <div className="flex items-center bg-canvas-gray px-3 py-2 rounded-lg gap-2">
-                    <Search size={16} className="text-muted-steel shrink-0" />
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-charcoal-ink tracking-tight">{folderTitle}</h2>
+                    <button 
+                        onClick={onToggleUnread}
+                        className={`
+                            flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold
+                            transition-all duration-300 ease-out cursor-pointer border
+                            ${showUnreadOnly 
+                                ? 'bg-spring-green text-pure-surface border-spring-green shadow-md shadow-spring-green/20 scale-105' 
+                                : 'bg-canvas-gray text-muted-steel border-whisper/50 hover:border-muted-steel/30 hover:bg-whisper/20'}
+                        `}
+                    >
+                        <Filter size={14} strokeWidth={2.5} />
+                        <span>Unread</span>
+                    </button>
+                </div>
+                <div className="flex items-center bg-canvas-gray px-3 py-2.5 rounded-xl gap-3 border border-transparent transition-all duration-300 focus-within:bg-pure-surface focus-within:border-spring-green/30 focus-within:shadow-xl focus-within:shadow-spring-green/5">
+                    <Search size={18} className="text-muted-steel shrink-0 transition-colors group-focus-within:text-spring-green" />
                     <input
                         type="text"
                         placeholder="Search mail or ask AI..."
-                        className="border-none bg-transparent outline-none w-full text-sm font-sans text-charcoal-ink placeholder:text-muted-steel"
+                        className="bg-transparent border-none outline-none w-full text-sm font-medium text-charcoal-ink placeholder:text-muted-steel/50"
                     />
                 </div>
             </div>
@@ -54,7 +74,7 @@ export default function InboxList({
                                 onClick={() => onTabChange && onTabChange(tab.id)}
                                 className={`flex-1 flex flex-col items-center py-3 bg-transparent cursor-pointer transition-all gap-1 border-b-2 ${
                                     isActive
-                                        ? 'text-emerald-accent border-emerald-accent font-semibold'
+                                        ? 'text-spring-green border-spring-green font-semibold'
                                         : 'text-muted-steel border-transparent font-medium'
                                 }`}
                             >

@@ -2,18 +2,25 @@ package com.vuthevy1209.springmail.service.auth;
 
 import java.util.Map;
 
+import com.vuthevy1209.springmail.enums.SyncStatus;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
 import com.vuthevy1209.springmail.dto.response.auth.UserResponse;
 
 import jakarta.servlet.ServletException;
+import com.vuthevy1209.springmail.repository.UserRepository;
+import com.vuthevy1209.springmail.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+
+    private final UserRepository userRepository;
 
     @Override
     public UserResponse getCurrentUser() {
@@ -23,12 +30,18 @@ public class AuthServiceImpl implements AuthService {
         }
 
         Map<String, Object> attributes = user.getAttributes();
+        String email = (String) attributes.get("email");
+
+        SyncStatus syncStatus = userRepository.findByEmail(email)
+                .map(User::getSyncStatus)
+                .orElse(null);
 
         return UserResponse.builder()
                 .googleId((String) attributes.get("googleId"))
                 .givenName((String) attributes.get("givenName"))
-                .email((String) attributes.get("email"))
+                .email(email)
                 .avatar((String) attributes.get("avatar"))
+                .syncStatus(syncStatus)
                 .build();
     }
 

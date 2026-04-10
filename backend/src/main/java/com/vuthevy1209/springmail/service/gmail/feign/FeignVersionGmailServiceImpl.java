@@ -15,12 +15,10 @@ import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
 import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-@Primary
 public class FeignVersionGmailServiceImpl implements GmailService {
 
 	private final GmailFeignClient gmailFeignClient;
@@ -53,5 +51,10 @@ public class FeignVersionGmailServiceImpl implements GmailService {
 	public GmailListHistoryResponseDto listHistory(String accessToken, String startHistoryId, Long maxResults, String pageToken) throws IOException {
 		ListHistoryResponse response = gmailFeignClient.listHistory("Bearer " + accessToken, startHistoryId, maxResults, pageToken);
 		return GmailMapper.toGmailListHistoryResponseDto(response);
+	}
+
+	@Override
+	public List<GmailThreadDto> getThreadsBatch(String accessToken, List<String> threadIds) throws IOException {
+		throw new UnsupportedOperationException("Batch requests not supported in Feign version");
 	}
 }

@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,13 +29,21 @@ public class MailController {
 
 	private final MailService mailService;
 
+	@PostMapping("/sync")
+	public ApiResponse<Void> syncMail() throws IOException {
+		mailService.syncMail();
+		return ApiResponse.<Void>builder()
+				.message("Mail sync initiated successfully")
+				.build();
+	}
+
 	@GetMapping("/threads")
 	public ApiResponse<List<MailThreadResponse>> getEmails(
 			@RequestParam(defaultValue = "inbox") String folder,
 			@RequestParam(required = false) String category
 	) throws IOException {
 		return ApiResponse.<List<MailThreadResponse>>builder()
-				.result(mailService.getRecentEmails(folder, category))
+				.result(mailService.getMailThreads(folder, category))
 				.build();
 	}
 

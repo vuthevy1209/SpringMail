@@ -2,9 +2,11 @@ package com.vuthevy1209.springmail.entity;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
+
+import java.util.List;
 import java.util.Set;
 
 @Getter @Setter
@@ -13,30 +15,28 @@ import java.util.Set;
 @Document(collection = "mail_messages")
 public class MailMessage {
 
-    @Id
-    private String id; // Gmail Message ID
-
-    @Indexed
-    private String threadId; // Gmail Thread ID
-
-    @Indexed
     private String userId;
 
+    @Id
+    private String id; // Gmail Message ID
+    private String threadId;
+    private String snippet;
+    private Long internalDate;
+    private Long historyId;
     private Set<String> labelIds;
     
-    private String snippet;
-    
-    private String subject;
-    
-    private String from;
-    
-    private String to;
-    
-    private Long internalDate; // Use this for sorting within threads
+    private String fromEmail;
+	private String fromName;
+	private String toEmail;
+	private String toName;
+	private List<String> cc;
+	private List<String> bcc;
+	private String subject;
+    private String dateString;
     
     private String bodyHtml;
+    private String bodyText;
+    private Long sizeEstimate;
     
-    private String historyId;
-    
-    private java.util.Set<MessageAttachment> attachments;
+    private List<GmailAttachmentDto> attachments;
 }

@@ -20,10 +20,13 @@ export default function App() {
 
 					{/* App Routes (with layout) */}
 					<Route element={<MainLayout />}>
-						<Route path="/inbox"  element={<MailboxPage folder="inbox"  />} />
-						<Route path="/sent"   element={<MailboxPage folder="sent"   />} />
-						<Route path="/drafts" element={<MailboxPage folder="drafts" />} />
-						<Route path="/trash"  element={<MailboxPage folder="trash"  />} />
+						<Route path="/inbox"      element={<MailboxPage folder="inbox"     />} />
+						<Route path="/starred"    element={<MailboxPage folder="starred"   />} />
+						<Route path="/important"  element={<MailboxPage folder="important" />} />
+						<Route path="/sent"       element={<MailboxPage folder="sent"      />} />
+						<Route path="/drafts"     element={<MailboxPage folder="drafts"    />} />
+						<Route path="/spam"       element={<MailboxPage folder="spam"      />} />
+						<Route path="/trash"      element={<MailboxPage folder="trash"     />} />
 					</Route>
 				</Route>
 			</Routes>

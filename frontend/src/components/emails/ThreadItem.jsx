@@ -32,7 +32,7 @@ export default function ThreadItem({ thread, isSelected, onClick }) {
                             {senderName}
                         </span>
                         {thread.unread && (
-                            <span className="shrink-0 bg-emerald-accent/10 text-emerald-accent text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            <span className="shrink-0 bg-spring-green/10 text-spring-green text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
                                 New
                             </span>
                         )}

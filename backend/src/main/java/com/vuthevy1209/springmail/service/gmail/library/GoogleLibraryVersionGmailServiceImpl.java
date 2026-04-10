@@ -15,13 +15,22 @@ import com.vuthevy1209.springmail.service.gmail.dto.history.GmailListHistoryResp
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.io.IOException;
 
+import com.google.api.client.googleapis.batch.BatchRequest;
+import com.google.api.client.googleapis.batch.json.JsonBatchCallback;
+import com.google.api.client.googleapis.json.GoogleJsonError;
+import com.google.api.client.http.HttpHeaders;
+
 @Service
+@Primary
 @RequiredArgsConstructor
 public class GoogleLibraryVersionGmailServiceImpl implements GmailService {
 
@@ -73,5 +82,40 @@ public class GoogleLibraryVersionGmailServiceImpl implements GmailService {
 				.setPageToken(pageToken)
 				.execute();
 		return GmailMapper.toGmailListHistoryResponseDto(response);
+	}
+
+	@Override
+	public List<GmailThreadDto> getThreadsBatch(String accessToken, List<String> threadIds) throws IOException {
+		if (threadIds == null || threadIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		Gmail service = gmailServiceFactory.build(accessToken);
+		BatchRequest batch = service.batch();
+		List<Thread> threads = Collections.synchronizedList(new ArrayList<>());
+
+		JsonBatchCallback<Thread> callback = new JsonBatchCallback<>() {
+			@Override
+			public void onSuccess(Thread thread, HttpHeaders responseHeaders) {
+				threads.add(thread);
+			}
+
+			@Override
+			public void onFailure(GoogleJsonError e, HttpHeaders responseHeaders) {
+				System.err.println("Error fetching thread in batch: " + e.getMessage());
+			}
+		};
+
+		for (String threadId : threadIds) {
+			service.users().threads().get("me", threadId)
+					.setFormat("full")
+					.queue(batch, callback);
+		}
+
+		batch.execute();
+
+		return threads.stream()
+				.map(GmailMapper::toGmailThreadDto)
+				.toList();
 	}
 }

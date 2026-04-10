@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Inbox, Send, FileText, Trash2, Settings, LogOut, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Inbox, Send, FileText, Trash2, Settings, LogOut, X, ChevronLeft, ChevronRight, Star, Bookmark, AlertOctagon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SpringIcon from '../../assets/spring-icon.svg';
 
@@ -11,12 +11,19 @@ const iconMap = {
 	Send: Send,
 	FileText: FileText,
 	Trash2: Trash2,
+	Star: Star,
+	Bookmark: Bookmark,
+	AlertOctagon: AlertOctagon,
 };
 
 export const folders = [
 	{ id: 'inbox', name: 'Inbox', icon: 'Inbox', count: 12 },
+
 	{ id: 'sent', name: 'Sent', icon: 'Send', count: 0 },
 	{ id: 'drafts', name: 'Drafts', icon: 'FileText', count: 3 },
+    { id: 'starred', name: 'Starred', icon: 'Star', count: 0 },
+	{ id: 'important', name: 'Important', icon: 'Bookmark', count: 0 },
+	{ id: 'spam', name: 'Spam', icon: 'AlertOctagon', count: 0 },
 	{ id: 'trash', name: 'Trash', icon: 'Trash2', count: 0 },
 ];
 
@@ -82,10 +89,10 @@ export default function Sidebar() {
                                 <div className="relative">
                                     <Icon
                                         size={22}
-                                        className={`shrink-0 ${isActive ? 'text-emerald-accent' : ''}`}
+                                        className={`shrink-0 ${isActive ? 'text-spring-green' : ''}`}
                                     />
                                     {isCollapsed && folder.count > 0 && (
-                                        <span className="absolute -top-2 -right-2 bg-emerald-accent text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-canvas-gray shadow-sm">
+                                        <span className="absolute -top-2 -right-2 bg-spring-green text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-canvas-gray shadow-sm">
                                             {folder.count > 99 ? '99+' : folder.count}
                                         </span>
                                     )}
@@ -99,7 +106,7 @@ export default function Sidebar() {
                             {!isCollapsed && folder.count > 0 && (
                                 <span
                                     className={`text-xs px-2.5 py-1 rounded-xl font-bold ${isActive
-                                        ? 'bg-emerald-accent text-white shadow-sm'
+                                        ? 'bg-spring-green text-white shadow-sm'
                                         : 'bg-whisper/40 text-muted-steel'
                                         }`}
                                 >

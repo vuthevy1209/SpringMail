@@ -9,8 +9,8 @@ export default {
 				'charcoal-ink':  '#18181B',
 				'muted-steel':   '#71717A',
 				'whisper':       '#E2E8F0', // use as border-whisper/50
-				'emerald-accent': '#10B981',
-				'emerald-hover':  '#0ca16d',
+				'spring-green':   '#69ad3c',
+				'spring-green-hover': '#5a9433',
 			},
 			fontFamily: {
 				sans: ['Manrope', 'sans-serif'],

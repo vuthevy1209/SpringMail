@@ -15,4 +15,5 @@ public interface GmailService {
     GmailThreadDto getThread(String accessToken, String threadId, String format, List<String> metadataHeaders) throws IOException;
     GmailAttachmentDto getAttachment(String accessToken, String messageId, String attachmentId, String filename, String mimeType) throws IOException;
     GmailListHistoryResponseDto listHistory(String accessToken, String startHistoryId, Long maxResults, String pageToken) throws IOException;
+    List<GmailThreadDto> getThreadsBatch(String accessToken, List<String> threadIds) throws IOException;
 }

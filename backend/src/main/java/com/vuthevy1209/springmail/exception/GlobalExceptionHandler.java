@@ -9,6 +9,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.io.IOException;
+
+
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -71,4 +74,18 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(apiResponse);
     }
+
+    // Handle IO exceptions
+    @ExceptionHandler(value = IOException.class)
+    ResponseEntity<ApiResponse<?>> handlingIOException(IOException exception, HttpServletRequest request) {
+        log.error("IOException [{} {}]: {}", request.getMethod(), request.getRequestURI(), exception.getMessage());
+        ErrorCode errorCode = ErrorCode.UNCATEGORIZED_EXCEPTION;
+        ApiResponse<?> apiResponse = ApiResponse.builder()
+                .code(errorCode.getCode())
+                .message("IO Error: " + exception.getMessage())
+                .build();
+
+        return ResponseEntity.status(errorCode.getStatusCode()).body(apiResponse);
+    }
 }
+

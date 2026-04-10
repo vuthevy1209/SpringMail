@@ -13,9 +13,6 @@ import com.google.api.services.gmail.model.MessagePartBody;
 import com.google.api.services.gmail.model.MessagePartHeader;
 import com.google.api.services.gmail.model.Profile;
 import com.google.api.services.gmail.model.Thread;
-import com.vuthevy1209.springmail.dto.response.mail.MailAttachmentResponse;
-import com.vuthevy1209.springmail.dto.response.mail.MailResponse;
-import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
 import com.vuthevy1209.springmail.service.gmail.dto.profile.GmailProfileDto;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailHistoryDto;
@@ -241,19 +238,12 @@ public class GmailMapper {
 				.attachmentId(body.getAttachmentId())
 				.filename(filename)
 				.mimeType(mimeType)
-				.data(body.getData())
 				.size(body.getSize() != null ? body.getSize().longValue() : null)
 				.build();
 	}
 
 
-
-
-
-
-
-
-    // Not verified
+    // verified
 	public static GmailListHistoryResponseDto toGmailListHistoryResponseDto(ListHistoryResponse response) {
 		if (response == null) {
 			return null;
@@ -327,60 +317,5 @@ public class GmailMapper {
 				.message(toGmailMessageDto(event.getMessage()))
 				.labelIds(event.getLabelIds())
 				.build();
-	}
-
-
-
-	public static MailThreadResponse toMailThreadResponse(GmailThreadDto thread) {
-		if (thread == null) return null;
-
-		List<MailResponse> messages = thread.getMessages() == null ? new ArrayList<>() :
-				thread.getMessages().stream()
-						.map(GmailMapper::toMailResponse)
-						.collect(Collectors.toList());
-
-		String latestSubject = messages.isEmpty() ? "" : messages.get(messages.size() - 1).subject();
-		String latestSenderName = messages.isEmpty() ? "" : messages.get(messages.size() - 1).senderName();
-		String latestDate = messages.isEmpty() ? "" : messages.get(messages.size() - 1).date();
-		boolean unread = thread.getMessages() != null && thread.getMessages().stream()
-				.anyMatch(m -> m.getLabelIds() != null && m.getLabelIds().contains("UNREAD"));
-
-		return new MailThreadResponse(
-				thread.getId(),
-				latestSubject,
-				thread.getSnippet(),
-				latestDate,
-				latestSenderName,
-				unread,
-				thread.getMessages() == null ? 0 : thread.getMessages().size(),
-				messages.isEmpty() ? null : messages.get(messages.size() - 1).internalDate(),
-				messages
-		);
-	}
-
-	public static MailResponse toMailResponse(GmailMessageDto message) {
-		if (message == null) return null;
-
-		List<MailAttachmentResponse> attachments = message.getAttachments() == null ? new ArrayList<>() :
-				message.getAttachments().stream()
-						.map(a -> new MailAttachmentResponse(a.getAttachmentId(), a.getFilename(), a.getMimeType(), null))
-						.collect(Collectors.toList());
-
-		boolean unread = message.getLabelIds() != null && message.getLabelIds().contains("UNREAD");
-
-		return new MailResponse(
-				message.getId(),
-				message.getFromEmail(), // This should ideally be the full "From" header if preferred
-				message.getToEmail(),
-				message.getFromName(),
-				message.getFromEmail(),
-				message.getSubject(),
-				message.getDateString(),
-				message.getSnippet(),
-				message.getBodyHtml() != null && !message.getBodyHtml().isEmpty() ? message.getBodyHtml() : message.getBodyText(),
-				unread,
-				message.getInternalDate(),
-				attachments
-		);
 	}
 }

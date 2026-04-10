@@ -7,9 +7,11 @@ import java.io.IOException;
 import java.util.List;
 
 public interface MailService {
-	List<MailThreadResponse> getRecentEmails(String folder, String category) throws IOException;
+	List<MailThreadResponse> getMailThreads(String folder, String category) throws IOException;
 
 	MailThreadResponse getThreadDetails(String threadId) throws IOException;
 
 	GmailAttachmentDto getAttachment(String messageId, String attachmentId, String filename, String mimeType) throws IOException;
+
+	void syncMail() throws IOException;
 }
