@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
     Sparkles,
     ListChecks,
@@ -17,6 +18,26 @@ import EmailReaderSkeleton from "./EmailReaderSkeleton";
 import { LAYOUT } from "../../constants/layout";
 
 export default function EmailReader({ selectedThread, isLoading }) {
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [actionToConfirm, setActionToConfirm] = useState(null);
+
+    const handleActionClick = (actionName) => {
+        setActionToConfirm(actionName);
+        setIsConfirmModalOpen(true);
+    };
+
+    const handleConfirmAction = () => {
+        // TODO: Implement logic here based on actionToConfirm
+        // console.log("Confirmed action:", actionToConfirm);
+        setIsConfirmModalOpen(false);
+        setActionToConfirm(null);
+    };
+
+    const handleCancelAction = () => {
+        setIsConfirmModalOpen(false);
+        setActionToConfirm(null);
+    };
+
     if (isLoading) {
         return <EmailReaderSkeleton />;
     }
@@ -48,19 +69,31 @@ export default function EmailReader({ selectedThread, isLoading }) {
 
                 {/* Right side: Email Actions */}
                 <div className="flex flex-wrap gap-2">
-                    <button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors">
+                    <button 
+                        onClick={() => handleActionClick('Archive')}
+                        className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors"
+                    >
                         <Archive size={16} />
                         <span>Archive</span>
                     </button>
-                    <button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors">
+                    <button 
+                        onClick={() => handleActionClick('Report spam')}
+                        className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors"
+                    >
                         <AlertTriangle size={16} />
                         <span>Report spam</span>
                     </button>
-                    <button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors">
+                    <button 
+                        onClick={() => handleActionClick('Delete')}
+                        className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors"
+                    >
                         <Trash2 size={16} />
                         <span>Delete</span>
                     </button>
-                    <button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors">
+                    <button 
+                        onClick={() => handleActionClick('Mark as read')}
+                        className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors"
+                    >
                         <Mail size={16} />
                         <span>Mark as read</span>
                     </button>
@@ -180,6 +213,36 @@ export default function EmailReader({ selectedThread, isLoading }) {
                     </div>
                 </div>
             </div>
+
+            {/* Confirmation Modal */}
+            {isConfirmModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-ink/50 backdrop-blur-sm">
+                    <div className="bg-pure-surface rounded-xl shadow-lg w-full max-w-md overflow-hidden border border-whisper">
+                        <div className="p-6">
+                            <h3 className="text-lg font-semibold text-charcoal-ink mb-2">
+                                Confirm Action
+                            </h3>
+                            <p className="text-muted-steel text-sm mb-6 leading-relaxed">
+                                Are you sure you want to <strong className="text-charcoal-ink">{actionToConfirm?.toLowerCase()}</strong> the thread <strong className="text-charcoal-ink">"{thread.subject}"</strong>? This action might be irreversible.
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={handleCancelAction}
+                                    className="px-4 py-2 rounded-lg font-medium text-charcoal-ink bg-canvas-gray hover:bg-whisper/50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmAction}
+                                    className={`px-4 py-2 rounded-lg font-medium text-pure-surface bg-green-600 hover:bg-green-700 transition-colors`}
+                                >
+                                    Confirm
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
