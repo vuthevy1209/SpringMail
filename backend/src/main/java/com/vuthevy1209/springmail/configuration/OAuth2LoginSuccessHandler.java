@@ -3,6 +3,7 @@ package com.vuthevy1209.springmail.configuration;
 import com.vuthevy1209.springmail.converters.UserConverter;
 import com.vuthevy1209.springmail.entity.User;
 import com.vuthevy1209.springmail.repository.UserRepository;
+import com.vuthevy1209.springmail.service.gmail.GmailWatchService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
     private final UserRepository userRepository;
     private final MailSyncService mailSyncService;
+    private final GmailWatchService gmailWatchService;
     private final OAuth2AuthorizedClientService authorizedClientService;
 
     private final UserConverter userConverter;
@@ -68,16 +70,20 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         user.setUpdatedAt(Instant.now());
         User savedUser = userRepository.save(user);
 
-		// 2. Trigger background mail sync
+		// 2. Trigger background mail sync và Cài đặt Gmail Watch (để nhận Webhook)
 		OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
 		String clientRegistrationId = oauthToken.getAuthorizedClientRegistrationId();
 		var authorizedClient = authorizedClientService.loadAuthorizedClient(clientRegistrationId, oauthToken.getName());
 		if (authorizedClient != null && authorizedClient.getAccessToken() != null) {
 			String accessTokenValue = authorizedClient.getAccessToken().getTokenValue();
             try {
+                // Đăng ký nhận thông báo thay đổi mail cho user này qua Pub/Sub
+                gmailWatchService.setupWatch(savedUser, accessTokenValue);
+
+                // Kéo dỡ liệu lần đầu hoặc Incremental
                 mailSyncService.syncMail(savedUser, accessTokenValue);
             } catch (IOException e) {
-                log.error("Background sync failed for user {}: {}", email, e.getMessage());
+                log.error("Background sync / watch failed for user {}: {}", email, e.getMessage());
             }
 		}
 

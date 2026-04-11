@@ -2,13 +2,16 @@ package com.vuthevy1209.springmail.task;
 
 import com.vuthevy1209.springmail.entity.User;
 import com.vuthevy1209.springmail.repository.UserRepository;
-import com.vuthevy1209.springmail.service.mail.MailSyncService;
-import com.vuthevy1209.springmail.utils.SecurityUtils;
+import com.vuthevy1209.springmail.service.gmail.GmailWatchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Component
@@ -17,35 +20,42 @@ import java.util.List;
 public class MailSyncTask {
 
 	private final UserRepository userRepository;
-	private final MailSyncService mailSyncService;
+	private final GmailWatchService gmailWatchService;
+	private final OAuth2AuthorizedClientService authorizedClientService;
 
 	/**
-	 * Chạy incremental sync cho tất cả người dùng mỗi 15 phút.
+	 * Chạy định kỳ (mỗi ngày 1 lần) để renew lại Watch (Webhook) của Google
+	 * Quét những người dùng có hạn Webhook <= 2 ngày thì tự động gia hạn (Refresh 7 ngày mới)
 	 */
-	@Scheduled(fixedDelay = 15 * 60 * 1000)
-	public void scheduleIncrementalSync() {
-//		log.info("Starting scheduled incremental sync for all users");
-//		List<User> users = userRepository.findAll();
-//
-//		for (User user : users) {
-//			if (user.getLastHistoryId() == null) {
-//				log.info("Skipping background sync for user {} (no initial sync yet)", user.getEmail());
-//				continue;
-//			}
-//
-//			try {
-//				String accessToken = SecurityUtils.getAccessTokenForUser("google", user.getEmail());
-//				if (accessToken != null) {
-//					mailSyncService.syncMail(user, accessToken);
-//					log.info("Background sync completed for user {}", user.getEmail());
-//				} else {
-//					log.warn("Could not retrieve access token for background sync for user {}", user.getEmail());
-//				}
-//			} catch (Exception e) {
-//				log.error("Failed to perform background sync for user {}", user.getEmail(), e);
-//			}
-//		}
-//		log.info("Finished scheduled incremental sync");
-		log.info("Scheduled incremental sync will be implemented in the future. This is a placeholder for the scheduled task.");
+	@Scheduled(fixedDelay = 24 * 60 * 60 * 1000)
+	public void renewGmailWatch() {
+		log.info("Starting scheduled renew for Gmail Webhook Watch");
+		List<User> users = userRepository.findAll();
+
+		// Tính mốc 2 ngày kể từ hiện tại, chuẩn bị đối chiếu
+		Instant safetyThreshold = Instant.now().plus(2, ChronoUnit.DAYS);
+
+		for (User user : users) {
+			if (user.getWatchExpiration() == null) {
+				continue;
+			}
+
+			// Nếu expired hoặc sắp expired trong vòng 2 ngày tới
+			if (user.getWatchExpiration().isBefore(safetyThreshold)) {
+				try {
+					OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient("google", user.getEmail());
+					if (client != null && client.getAccessToken() != null) {
+						String accessToken = client.getAccessToken().getTokenValue();
+						gmailWatchService.setupWatch(user, accessToken);
+						log.info("Successfully renewed Webhook watch for user {}", user.getEmail());
+					} else {
+						log.warn("Failed to renew watch for user {} - Missing OAuth2 Client Token", user.getEmail());
+					}
+				} catch (Exception e) {
+					log.error("Error occurred while renewing watch for user {}", user.getEmail(), e);
+				}
+			}
+		}
+		log.info("Finished scheduled renew for Gmail Webhook Watch");
 	}
 }

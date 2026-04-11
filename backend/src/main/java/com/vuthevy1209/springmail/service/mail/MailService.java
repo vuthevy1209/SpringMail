@@ -17,4 +17,6 @@ public interface MailService {
 	MailThreadResponse getThreadDetail(String threadId) throws IOException;
 
 	ResponseEntity<byte[]> getAttachment(AttachmentRequest request) throws IOException;
+
+	void processNewEmails(String email, String historyId);
 }

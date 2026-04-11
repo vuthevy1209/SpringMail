@@ -7,9 +7,11 @@ import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
 import com.vuthevy1209.springmail.repository.MailMessageRepository;
 import com.vuthevy1209.springmail.repository.MailThreadRepository;
+import com.vuthevy1209.springmail.repository.UserRepository;
 import com.vuthevy1209.springmail.converters.MailThreadConverter;
 import com.vuthevy1209.springmail.entity.MailMessage;
 import com.vuthevy1209.springmail.entity.MailThread;
+import com.vuthevy1209.springmail.entity.User;
 import com.vuthevy1209.springmail.service.gmail.GmailService;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
@@ -20,6 +22,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.*;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
@@ -37,6 +41,8 @@ public class MailServiceImpl implements MailService {
 
 	private final MailThreadRepository threadRepository;
 	private final MailMessageRepository messageRepository;
+	private final UserRepository userRepository;
+	private final OAuth2AuthorizedClientService authorizedClientService;
 
 	private final MailSyncService mailSyncService;
 
@@ -114,5 +120,29 @@ public class MailServiceImpl implements MailService {
 		return new ResponseEntity<>(content, headers, HttpStatus.OK);
 	}
 
+	@Override
+	public void processNewEmails(String email, String historyId) {
+		log.info("Processing new emails for {} triggered by webhook", email);
+
+		User user = userRepository.findByEmail(email).orElse(null);
+		if (user == null) {
+			log.warn("User {} not found in DB. Cannot process webhook.", email);
+			return;
+		}
+
+		// OAuth2AuthorizedClientService lưu principalName dưới dạng EMAIL (được setup trong CustomOidcUserService)
+		OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient("google", user.getEmail());
+		if (client == null || client.getAccessToken() == null) {
+			log.warn("OAuth2AuthorizedClient not found or missing access token for user {}", email);
+			return;
+		}
+
+		try {
+			String accessToken = client.getAccessToken().getTokenValue();
+			mailSyncService.syncMail(user, accessToken);
+		} catch (Exception e) {
+			log.error("Failed to sync new emails for user {}", email, e);
+		}
+	}
 }
 
