@@ -7,6 +7,29 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 export default function EmailBody({ content, messageId, attachments = [] }) {
     const iframeRef = useRef(null);
     const [height, setHeight] = useState('60px'); // Set a small initial height
+    const [zoomedImage, setZoomedImage] = useState(null);
+
+    useEffect(() => {
+        const handleMessage = (e) => {
+            if (e.data && e.data.type === 'EMAIL_IMAGE_CLICK') {
+                setZoomedImage(e.data.src);
+            }
+        };
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                setZoomedImage(null);
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        window.addEventListener('keydown', handleKeyDown);
+        
+        return () => {
+            window.removeEventListener('message', handleMessage);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, []);
 
     // Process the content to resolve cid: images
     const processedContent = useMemo(() => {
@@ -47,6 +70,7 @@ export default function EmailBody({ content, messageId, attachments = [] }) {
                     max-width: 100% !important;
                     height: auto !important;
                     display: block;
+                    cursor: zoom-in;
                 }
                 body {
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -66,7 +90,17 @@ export default function EmailBody({ content, messageId, attachments = [] }) {
         // Wrap in a container for better height calculation
         return `
             <html>
-                <head>${styleTag}</head>
+                <head>
+                    ${styleTag}
+                    <script>
+                        document.addEventListener('click', function(e) {
+                            if (e.target.tagName === 'IMG') {
+                                e.preventDefault();
+                                window.parent.postMessage({ type: 'EMAIL_IMAGE_CLICK', src: e.target.src }, '*');
+                            }
+                        });
+                    </script>
+                </head>
                 <body>
                     <div class="email-container">
                         ${newContent}
@@ -135,20 +169,42 @@ export default function EmailBody({ content, messageId, attachments = [] }) {
     }, [processedContent]);
 
     return (
-        <iframe
-            ref={iframeRef}
-            srcDoc={processedContent}
-            title="Email Content"
-            style={{
-                width: '100%',
-                border: 'none',
-                overflow: 'hidden',
-                backgroundColor: 'transparent',
-                display: 'block',
-                height: height
-            }}
-            sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
-            loading="lazy"
-        />
+        <>
+            <iframe
+                ref={iframeRef}
+                srcDoc={processedContent}
+                title="Email Content"
+                style={{
+                    width: '100%',
+                    border: 'none',
+                    overflow: 'hidden',
+                    backgroundColor: 'transparent',
+                    display: 'block',
+                    height: height
+                }}
+                sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
+                loading="lazy"
+            />
+            {zoomedImage && (
+                <div 
+                    className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
+                    onClick={() => setZoomedImage(null)}
+                >
+                    <img 
+                        src={zoomedImage} 
+                        alt="Zoomed email content" 
+                        className="max-w-[90vw] max-h-[90vh] object-contain rounded bg-white shadow-2xl cursor-default"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                    <button 
+                        className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 flex items-center justify-center cursor-pointer transition-colors text-xl font-bold"
+                        onClick={() => setZoomedImage(null)}
+                        title="Close (Esc)"
+                    >
+                        &times;
+                    </button>
+                </div>
+            )}
+        </>
     );
 }
