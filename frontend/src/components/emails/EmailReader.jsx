@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import {
     Sparkles,
     ListChecks,
@@ -11,6 +12,13 @@ import {
     FolderInput,
     Reply,
     Forward,
+    X,
+    Inbox,
+    FileEdit,
+    Send,
+    AlertOctagon,
+    RefreshCw,
+    Wand2,
 } from "lucide-react";
 import mailService from "../../service/mailService";
 import EmailBody from "./EmailBody";
@@ -20,6 +28,18 @@ import { LAYOUT } from "../../constants/layout";
 export default function EmailReader({ selectedThread, isLoading }) {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [actionToConfirm, setActionToConfirm] = useState(null);
+    const [summary, setSummary] = useState(null);
+    const [isSummarizing, setIsSummarizing] = useState(false);
+    const [isMoveToDropdownOpen, setIsMoveToDropdownOpen] = useState(false);
+    const [isReplying, setIsReplying] = useState(false);
+    const [replyContent, setReplyContent] = useState("");
+
+    useEffect(() => {
+        setSummary(null);
+        setIsSummarizing(false);
+        setIsReplying(false);
+        setReplyContent("");
+    }, [selectedThread]);
 
     const handleActionClick = (actionName) => {
         setActionToConfirm(actionName);
@@ -36,6 +56,24 @@ export default function EmailReader({ selectedThread, isLoading }) {
     const handleCancelAction = () => {
         setIsConfirmModalOpen(false);
         setActionToConfirm(null);
+    };
+
+    const handleSummarize = () => {
+        setIsSummarizing(true);
+        // FIXME: Replace with real API call later
+        setTimeout(() => {
+            setSummary(`### Tóm tắt nội dung chính
+
+Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực tuyến sắp tới:
+
+* **Trang phục:** Lịch sự, phù hợp với môi trường thi cử.
+* **Cú pháp Zoom:** Đăng nhập 1 tài khoản/1 thiết bị theo cú pháp: \`GIP2026_SBD\` *(Ví dụ: GIP2026_001)*.
+* **Thiết bị:** Ưu tiên **Laptop** và bật camera xuyên suốt *(không yêu cầu bật mic)*.
+* **Không gian thi:** Yên tĩnh, ánh sáng đầy đủ, mạng ổn định. BTC có thể yêu cầu chụp hình điểm danh xác thực.
+
+> **Lưu ý:** Mọi thắc mắc cần phản hồi lại email này **trước 19h00 ngày 01/04/2026**. Quá hạn BTC sẽ không tiếp nhận.`);
+            setIsSummarizing(false);
+        }, 1500); // Giả lập độ trễ API AI
     };
 
     if (isLoading) {
@@ -61,9 +99,13 @@ export default function EmailReader({ selectedThread, isLoading }) {
             <div className="px-6 py-4 border-b border-whisper/50 flex items-center justify-between bg-pure-surface">
                 {/* Left side: AI Actions */}
                 <div className="flex gap-2">
-                    <button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors">
-                        <Sparkles size={16} className="text-spring-green" />
-                        Summarize
+                    <button 
+                        onClick={handleSummarize}
+                        disabled={isSummarizing || summary}
+                        className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors disabled:opacity-50"
+                    >
+                        <Sparkles size={16} className={isSummarizing ? "text-muted-steel animate-pulse" : "text-spring-green"} />
+                        {isSummarizing ? "Summarizing..." : "Summarize"}
                     </button>
                 </div>
 
@@ -97,19 +139,84 @@ export default function EmailReader({ selectedThread, isLoading }) {
                         <Mail size={16} />
                         <span>Mark as read</span>
                     </button>
-                    <button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors">
-                        <FolderInput size={16} />
-                        <span>Move to</span>
-                    </button>
+                    
+                    <div className="relative">
+                        <button 
+                            onClick={() => setIsMoveToDropdownOpen(!isMoveToDropdownOpen)}
+                            className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors"
+                        >
+                            <FolderInput size={16} />
+                            <span>Move to</span>
+                        </button>
+
+                        {isMoveToDropdownOpen && (
+                            <div className="absolute right-0 mt-2 w-36 bg-pure-surface border border-whisper rounded-xl shadow-xl z-20 py-2 animate-in fade-in zoom-in-95 duration-100 origin-top-right ring-1 ring-black/5">
+                                {[
+                                    { name: 'Inbox', icon: Inbox },
+                                    { name: 'Drafts', icon: FileEdit },
+                                    { name: 'Sent', icon: Send },
+                                    { name: 'Spam', icon: AlertOctagon },
+                                    { name: 'Trash', icon: Trash2 }
+                                ].map((folder) => {
+                                    const Icon = folder.icon;
+                                    return (
+                                        <button
+                                            key={folder.name}
+                                            onClick={() => {
+                                                handleActionClick(`Move to ${folder.name}`);
+                                                setIsMoveToDropdownOpen(false);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-[14px] font-medium text-charcoal-ink hover:bg-canvas-gray transition-colors group"
+                                        >
+                                            <Icon size={16} className="text-muted-steel group-hover:text-primary-blue transition-colors" />
+                                            <span className="group-hover:text-charcoal-ink">{folder.name}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* Reading Pane */}
             <div className="flex-1 px-12 py-8 overflow-y-auto">
-                <div className="max-w-[800px] mx-auto">
+                <div className="max-w-[1000px] w-full mx-auto">
                     <h1 className="text-2xl text-charcoal-ink mb-8 font-semibold">
                         {thread.subject}
                     </h1>
+
+                    {/* AI Summary Section */}
+                    {summary && (
+                        <div className="mb-8 p-6 bg-spring-green/5 border border-spring-green/20 rounded-xl relative shadow-sm">
+                            <button 
+                                onClick={() => setSummary(null)}
+                                className="absolute top-4 right-4 text-muted-steel hover:text-charcoal-ink transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                            <div className="flex items-center gap-2 mb-3">
+                                <Sparkles size={18} className="text-spring-green" />
+                                <h3 className="font-semibold text-charcoal-ink">AI Summary</h3>
+                            </div>
+                            <div className="text-charcoal-ink/90 text-[14px] leading-relaxed">
+                                <ReactMarkdown
+                                    components={{
+                                        h3: ({node, ...props}) => <h3 className="text-[15px] font-bold mt-2 mb-1" {...props} />,
+                                        p: ({node, ...props}) => <p className="mb-2" {...props} />,
+                                        ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+                                        li: ({node, ...props}) => <li {...props} />,
+                                        strong: ({node, ...props}) => <strong className="font-bold text-charcoal-ink" {...props} />,
+                                        em: ({node, ...props}) => <em className="italic text-charcoal-ink/70" {...props} />,
+                                        code: ({node, ...props}) => <code className="bg-canvas-gray px-1.5 py-0.5 rounded text-[13px] text-primary-blue font-mono" {...props} />,
+                                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-spring-green/40 pl-3 py-1 my-3 bg-spring-green/5 text-charcoal-ink/80 italic rounded-r align-middle" {...props} />,
+                                    }}
+                                >
+                                    {summary}
+                                </ReactMarkdown>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Stack of Messages in the Thread */}
                     <div className="space-y-6">
@@ -200,17 +307,81 @@ export default function EmailReader({ selectedThread, isLoading }) {
                             ))}
                     </div>
 
-                    {/* Reply / Forward Actions */}
-                    <div className="mt-8 flex gap-3 pb-8">
-                        <button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-6 py-2.5 rounded-full bg-pure-surface font-medium hover:bg-canvas-gray transition-colors shadow-sm">
-                            <Reply size={18} className="text-muted-steel" />
-                            Reply
-                        </button>
-                        <button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-6 py-2.5 rounded-full bg-pure-surface font-medium hover:bg-canvas-gray transition-colors shadow-sm">
-                            <Forward size={18} className="text-muted-steel" />
-                            Forward
-                        </button>
-                    </div>
+                    {/* Reply / Forward Actions or Composer */}
+                    {isReplying ? (
+                        <div className="mt-8 mb-8 bg-pure-surface rounded-xl border border-spring-green/20 shadow-[0_4px_24px_rgba(0,0,0,0.06)] overflow-hidden ring-1 ring-spring-green/10">
+                            {/* Composer Header */}
+                            <div className="bg-[#f2faf6] px-6 py-4 border-b border-spring-green/10 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-1.5 text-spring-green font-semibold text-[13px] tracking-wide">
+                                        <Wand2 size={15} />
+                                        <span>LLM Draft</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-muted-steel/60 text-[12px] italic">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-spring-green animate-pulse"></div>
+                                        AI Writing...
+                                    </div>
+                                </div>
+                                <div className="text-[11px] font-bold tracking-widest text-[#8da69c]">
+                                    FORMAL TONE
+                                </div>
+                            </div>
+                            
+                            {/* Editor Area */}
+                            <div className="p-6">
+                                <textarea
+                                    autoFocus
+                                    className="w-full min-h-[200px] text-charcoal-ink text-[15px] leading-relaxed resize-none focus:outline-none placeholder:text-muted-steel/50 bg-transparent"
+                                    placeholder="Type your reply here..."
+                                    value={replyContent}
+                                    onChange={(e) => setReplyContent(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Composer Footer Actions */}
+                            <div className="bg-canvas-gray/30 px-6 py-4 border-t border-whisper flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        className="bg-spring-green hover:bg-[#00A86B] text-white px-6 py-2 rounded font-medium text-[14px] transition-colors shadow-sm"
+                                        onClick={() => setIsReplying(false)}
+                                    >
+                                        Send
+                                    </button>
+                                    <button className="bg-[#006039] hover:bg-[#004f2f] text-white flex items-center gap-1.5 px-4 py-2 rounded font-medium text-[14px] transition-colors shadow-sm border border-[#006039]">
+                                        <ListChecks size={16} />
+                                        Insert
+                                    </button>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button className="flex items-center justify-center gap-2 px-4 py-2 border border-whisper rounded text-[14px] font-medium text-charcoal-ink bg-pure-surface hover:bg-canvas-gray transition-colors shadow-sm">
+                                        <RefreshCw size={14} className="text-muted-steel" />
+                                        Regenerate
+                                    </button>
+                                    <button 
+                                        onClick={() => setIsReplying(false)}
+                                        className="flex items-center justify-center p-2 text-muted-steel hover:text-rose-500 rounded bg-pure-surface hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-colors"
+                                        title="Discard draft"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-8 flex gap-3 pb-8">
+                            <button 
+                                onClick={() => setIsReplying(true)}
+                                className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-6 py-2.5 rounded-full bg-pure-surface font-medium hover:bg-canvas-gray transition-colors shadow-sm"
+                            >
+                                <Reply size={18} className="text-muted-steel" />
+                                Reply
+                            </button>
+                            <button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-6 py-2.5 rounded-full bg-pure-surface font-medium hover:bg-canvas-gray transition-colors shadow-sm">
+                                <Forward size={18} className="text-muted-steel" />
+                                Forward
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -228,7 +399,7 @@ export default function EmailReader({ selectedThread, isLoading }) {
                             <div className="flex justify-end gap-3">
                                 <button
                                     onClick={handleCancelAction}
-                                    className="px-4 py-2 rounded-lg font-medium text-charcoal-ink bg-canvas-gray hover:bg-whisper/50 transition-colors"
+                                    className="px-4 py-2 rounded-lg font-medium text-charcoal-i k bg-canvas-gray hover:bg-whisper/50 transition-colors"
                                 >
                                     Cancel
                                 </button>
