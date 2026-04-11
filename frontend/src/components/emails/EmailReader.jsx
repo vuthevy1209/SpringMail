@@ -83,14 +83,14 @@ export default function EmailReader({ selectedThread, isLoading }) {
                                 </div>
 
                                 {/* Attachments */}
-                                {email.attachments && email.attachments.length > 0 && (
+                                {email.attachments && email.attachments.filter(att => att.id).length > 0 && (
                                     <div className="mt-6 pt-4 border-t border-whisper/50">
                                         <div className="font-semibold text-charcoal-ink mb-3 flex items-center gap-2 text-sm">
                                             <Paperclip size={14} />
-                                            {email.attachments.length} Attachments
+                                            {email.attachments.filter(att => att.id).length} Attachments
                                         </div>
                                         <div className="flex flex-wrap gap-2">
-                                            {email.attachments.map((att) => (
+                                            {email.attachments.filter(att => att.id).map((att) => (
                                                 <button
                                                     key={att.id}
                                                     onClick={() => mailService.downloadAttachment(email.id, att.id, att.filename, att.mimeType)}
