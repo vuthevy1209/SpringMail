@@ -12,7 +12,10 @@ export default function InboxList({
     activeTab = 'primary', 
     onTabChange,
     showUnreadOnly = false,
-    onToggleUnread
+    onToggleUnread,
+    onLoadMore,
+    hasMore,
+    isLoadingMore
 }) {
     const folderTitle = {
         inbox:     'Inbox',
@@ -87,7 +90,7 @@ export default function InboxList({
             )}
 
             {/* Thread List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto pb-6">
                 {isLoading ? (
                     <InboxListSkeleton />
                 ) : threads.length === 0 ? (
@@ -103,6 +106,30 @@ export default function InboxList({
                             onClick={() => onSelectThread(thread.id)}
                         />
                     ))
+                )}
+
+                {!isLoading && threads.length > 0 && hasMore && (
+                    <>
+                        {isLoadingMore ? (
+                            <div className="mt-2">
+                                <InboxListSkeleton count={3} />
+                            </div>
+                        ) : (
+                            <div className="flex justify-center mt-6 mb-6">
+                                <button 
+                                    onClick={onLoadMore}
+                                    className="px-6 py-2 rounded-full text-sm font-semibold bg-canvas-gray text-charcoal-ink border border-whisper/50 hover:bg-whisper/20 transition-all font-medium cursor-pointer"
+                                >
+                                    Show More
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
+                {!isLoading && threads.length > 0 && !hasMore && (
+                    <div className="text-center mt-6 mb-4 text-xs text-muted-steel">
+                        No more emails.
+                    </div>
                 )}
             </div>
         </div>

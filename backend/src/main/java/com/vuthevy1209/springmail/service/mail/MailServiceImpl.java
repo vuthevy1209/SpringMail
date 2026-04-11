@@ -1,13 +1,12 @@
 package com.vuthevy1209.springmail.service.mail;
 
 import com.vuthevy1209.springmail.dto.mail.request.AttachmentRequest;
+import com.vuthevy1209.springmail.dto.mail.request.FetchOlderRequest;
 import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
+import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
-import com.vuthevy1209.springmail.entity.User;
 import com.vuthevy1209.springmail.repository.MailMessageRepository;
 import com.vuthevy1209.springmail.repository.MailThreadRepository;
-import com.vuthevy1209.springmail.repository.UserRepository;
-import com.vuthevy1209.springmail.converters.MailMessageConverter;
 import com.vuthevy1209.springmail.converters.MailThreadConverter;
 import com.vuthevy1209.springmail.entity.MailMessage;
 import com.vuthevy1209.springmail.entity.MailThread;
@@ -28,7 +27,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,10 +37,11 @@ public class MailServiceImpl implements MailService {
 
 	private final MailThreadRepository threadRepository;
 	private final MailMessageRepository messageRepository;
-	private final UserRepository userRepository;
+
+	private final MailSyncService mailSyncService;
+
 
 	private final MailThreadConverter mailThreadConverter;
-	private final MailMessageConverter mailMessageConverter;
 
 	@Override
 	public Page<MailThreadResponse> getMailThreads(MailThreadsRequest request, int page, int size) throws IOException {
@@ -114,5 +113,6 @@ public class MailServiceImpl implements MailService {
 
 		return new ResponseEntity<>(content, headers, HttpStatus.OK);
 	}
+
 }
 

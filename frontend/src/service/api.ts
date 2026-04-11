@@ -28,6 +28,17 @@ api.interceptors.response.use(
 
         if (error.response) {
             const status = error.response.status;
+            
+            // Redirect to login if user gets a Gmail unauthenticated error or 401
+            const errorCode = error.response.data?.code;
+            if (status === 401 && errorCode === 'gmail-unauthenticated') {
+                toast.error("Google session expired. Redirecting to login...");
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 1500);
+                return Promise.reject(error);
+            }
+
             if (status === 401 && error.config.url?.includes('/auth/me')) {
                 return Promise.reject(error);
             }

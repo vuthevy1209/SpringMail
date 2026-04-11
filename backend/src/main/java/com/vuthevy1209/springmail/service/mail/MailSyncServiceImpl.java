@@ -2,10 +2,15 @@ package com.vuthevy1209.springmail.service.mail;
 
 import com.vuthevy1209.springmail.converters.MailMessageConverter;
 import com.vuthevy1209.springmail.converters.MailThreadConverter;
+import com.vuthevy1209.springmail.dto.mail.request.FetchOlderRequest;
+import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
 import com.vuthevy1209.springmail.entity.MailMessage;
 import com.vuthevy1209.springmail.entity.MailThread;
 import com.vuthevy1209.springmail.entity.User;
+import com.vuthevy1209.springmail.enums.MailLabel;
 import com.vuthevy1209.springmail.enums.SyncStatus;
+import com.vuthevy1209.springmail.exception.AppException;
+import com.vuthevy1209.springmail.exception.ErrorCode;
 import com.vuthevy1209.springmail.repository.MailMessageRepository;
 import com.vuthevy1209.springmail.repository.MailThreadRepository;
 import com.vuthevy1209.springmail.repository.UserRepository;
@@ -20,8 +25,10 @@ import com.vuthevy1209.springmail.service.gmail.dto.message.GmailMessageDto;
 import com.vuthevy1209.springmail.service.gmail.dto.profile.GmailProfileDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
+import com.vuthevy1209.springmail.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -227,5 +234,59 @@ public class MailSyncServiceImpl implements MailSyncService {
 		mailThreadEntity.setLastMessageTimestamp(lastMessageTimestamp);
 		mailThreadRepository.save(mailThreadEntity);
 	}
-}
 
+
+	@Override
+	public FetchOlderResponse fetchOlderThreads(FetchOlderRequest request) throws IOException {
+		OAuth2User oauthUser = SecurityUtils.getCurrentOAuth2User();
+		if (oauthUser == null) {
+			throw new RuntimeException("Current user not found");
+		}
+		String userId = oauthUser.getAttribute("googleId");
+		User user = userRepository.findById(userId).orElseThrow();
+		String accessToken = SecurityUtils.getAccessToken("google");
+		if (accessToken == null) {
+			throw new IOException("Missing access token");
+		}
+
+		String query = null;
+		if (request.getLabelIds() != null && !request.getLabelIds().isEmpty()) {
+			query = request.getLabelIds().stream()
+				.map(MailLabel::toGmailQuery)
+				.collect(Collectors.joining(" "));
+		}
+
+		if (request.getBeforeTimestamp() != null && request.getBeforeTimestamp() > 0) {
+			String beforeQuery = "before:" + (request.getBeforeTimestamp() / 1000);
+			query = (query == null || query.isEmpty()) ? beforeQuery : query + " " + beforeQuery;
+		}
+
+		int maxResults = request.getMaxResults() > 0 ? request.getMaxResults() : 50;
+
+		log.info("Fetching older threads for user {}, query {}, pageToken {}", user.getEmail(), query, request.getPageToken());
+
+		GmailListThreadsResponseDto response;
+		try {
+				response = gmailService.listThreads(accessToken, query, (long) maxResults, request.getPageToken());
+		} catch (IOException e) {
+				if (e.getMessage() != null && (e.getMessage().contains("401 Unauthorized") || e.getMessage().contains("401"))) {
+						throw new AppException(ErrorCode.GMAIL_UNAUTHENTICATED);
+				}
+				throw e;
+		}
+
+		int count = 0;
+
+		if (response.getThreads() != null) {
+			for (GmailThreadDto metadata : response.getThreads()) {
+				fetchAndProcessThread(user, accessToken, metadata.getId());
+				count++;
+			}
+		}
+
+		return FetchOlderResponse.builder()
+				.nextPageToken(response.getNextPageToken())
+				.fetchedCount(count)
+				.build();
+	}
+}

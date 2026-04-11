@@ -1,7 +1,9 @@
 package com.vuthevy1209.springmail.service.mail;
 
 import com.vuthevy1209.springmail.dto.mail.request.AttachmentRequest;
+import com.vuthevy1209.springmail.dto.mail.request.FetchOlderRequest;
 import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
+import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
 import org.springframework.http.ResponseEntity;
 

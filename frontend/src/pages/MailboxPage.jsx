@@ -19,6 +19,13 @@ export default function MailboxPage({ folder }) {
 	const [selectedThreadData, setSelectedThreadData] = useState(null);
 	const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
+	// Pagination & Load More States
+	const [dbPage, setDbPage] = useState(0);
+	const [hasMoreLocal, setHasMoreLocal] = useState(true);
+	const [googlePageToken, setGooglePageToken] = useState(null);
+	const [hasMoreGoogle, setHasMoreGoogle] = useState(true);
+	const [isLoadingMore, setIsLoadingMore] = useState(false);
+
 	// For inbox only — which category tab is active
 	const [activeTab, setActiveTab] = useState('primary');
 
@@ -58,10 +65,16 @@ export default function MailboxPage({ folder }) {
             setIsLoadingThreads(true);
             setShowUnreadOnly(false); // Reset filter when switching folders
 
+            setDbPage(0);
+            setHasMoreLocal(true);
+            setGooglePageToken(null);
+            setHasMoreGoogle(true);
+
             try {
                 const labelIds = getLabelIds();
                 const data = await mailService.fetchEmails(labelIds, 0, 20, controller.signal);
                 setThreads(data.content || []);
+                setHasMoreLocal(!data.last);
             } catch (error) {
                 if (error.name === 'CanceledError' || error.name === 'AbortError' || error.message === 'canceled') {
                     return;
@@ -114,9 +127,62 @@ export default function MailboxPage({ folder }) {
 		};
 	}, [selectedThreadId]);
 
+	const handleLoadMore = async () => {
+		if (isLoadingMore) return;
+		setIsLoadingMore(true);
+
+		try {
+			const labelIds = getLabelIds();
+
+			if (hasMoreLocal) {
+				const nextDbPage = Math.floor(threads.length / 20);
+				const data = await mailService.fetchEmails(labelIds, nextDbPage, 20);
+				
+				setThreads(prev => {
+					const existingIds = new Set(prev.map(t => t.id));
+					const newItems = (data.content || []).filter(t => !existingIds.has(t.id));
+					return [...prev, ...newItems];
+				});
+				setDbPage(nextDbPage);
+				setHasMoreLocal(!data.last);
+			} else if (hasMoreGoogle) {
+				// Get the oldest timestamp in milliseconds from current list
+				const oldestThread = threads.length > 0 ? threads[threads.length - 1] : null;
+				const beforeTimestamp = oldestThread ? oldestThread.lastMessageTimestamp : null;
+
+				// Fallback to fetch older from google
+				const googleData = await mailService.fetchOlderFromGoogle(labelIds, googlePageToken, beforeTimestamp);
+				
+				setGooglePageToken(googleData.nextPageToken);
+				if (!googleData.nextPageToken) {
+					setHasMoreGoogle(false);
+				}
+
+				// Then try fetching again from local DB using correct page index
+				const currentDbPage = Math.floor(threads.length / 20);
+				const data = await mailService.fetchEmails(labelIds, currentDbPage, 20);
+				
+				setThreads(prev => {
+					const existingIds = new Set(prev.map(t => t.id));
+					const newItems = (data.content || []).filter(t => !existingIds.has(t.id));
+					return [...prev, ...newItems];
+				});
+				
+				setDbPage(currentDbPage);
+				setHasMoreLocal(!data.last);
+			}
+		} catch (error) {
+			console.error("Failed to load more emails:", error);
+		} finally {
+			setIsLoadingMore(false);
+		}
+	};
+
 	const displayThreads = showUnreadOnly 
 		? threads.filter(t => t.unread) 
 		: threads;
+
+	const hasMore = hasMoreLocal || hasMoreGoogle;
 
 	return (
 		<>
@@ -130,6 +196,9 @@ export default function MailboxPage({ folder }) {
 				onTabChange={setActiveTab}
 				showUnreadOnly={showUnreadOnly}
 				onToggleUnread={() => setShowUnreadOnly(!showUnreadOnly)}
+				onLoadMore={handleLoadMore}
+				hasMore={hasMore}
+				isLoadingMore={isLoadingMore}
 			/>
 			<EmailReader
 				folder={folder}

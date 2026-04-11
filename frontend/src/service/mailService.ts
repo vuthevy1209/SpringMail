@@ -22,6 +22,11 @@ class MailService {
         link.click();
         URL.revokeObjectURL(link.href);
     }
+
+    async fetchOlderFromGoogle(labelIds: string[], pageToken?: string | null, beforeTimestamp?: number | null, signal?: AbortSignal) {
+        const response = await api.post('/mail/sync/fetch-older', { labelIds, pageToken, beforeTimestamp, maxResults: 50 }, { signal });
+        return response.data.result;
+    }
 }
 
 export default new MailService();

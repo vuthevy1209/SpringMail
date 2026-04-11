@@ -2,9 +2,12 @@ package com.vuthevy1209.springmail.controller;
 
 import com.vuthevy1209.springmail.dto.ApiResponse;
 import com.vuthevy1209.springmail.dto.mail.request.AttachmentRequest;
+import com.vuthevy1209.springmail.dto.mail.request.FetchOlderRequest;
 import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
+import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
 import com.vuthevy1209.springmail.service.mail.MailService;
+import com.vuthevy1209.springmail.service.mail.MailSyncService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +22,7 @@ import java.io.IOException;
 public class MailController {
 
 	private final MailService mailService;
+	private final MailSyncService mailSyncService;
 
 
 	@PostMapping("/threads")
@@ -57,4 +61,10 @@ public class MailController {
                 .build();
         return mailService.getAttachment(request);
     }
+	@PostMapping("/sync/fetch-older")
+	public ApiResponse<FetchOlderResponse> fetchOlderThreads(@RequestBody FetchOlderRequest request) throws IOException {
+		return ApiResponse.<FetchOlderResponse>builder()
+				.result(mailSyncService.fetchOlderThreads(request))
+				.build();
+	}
 }

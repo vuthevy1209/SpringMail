@@ -43,4 +43,23 @@ public enum MailLabel {
         }
         return null;
     }
+
+    public static String toGmailQuery(String labelId) {
+        if (labelId == null) return "";
+        switch (labelId) {
+            case "INBOX": return "in:inbox";
+            case "SENT": return "in:sent";
+            case "TRASH": return "in:trash";
+            case "DRAFT": return "in:draft";
+            case "STARRED": return "is:starred";
+            case "IMPORTANT": return "is:important";
+            case "SPAM": return "in:spam";
+            case "CATEGORY_PERSONAL": return "category:primary";
+            case "CATEGORY_SOCIAL": return "category:social";
+            case "CATEGORY_PROMOTIONS": return "category:promotions";
+            case "CATEGORY_UPDATES": return "category:updates";
+            case "CATEGORY_FORUMS": return "category:forums";
+            default: return "label:" + labelId;
+        }
+    }
 }
