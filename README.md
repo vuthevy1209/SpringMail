@@ -1,5 +1,5 @@
 # SpringMail
----
+
 <div align="center">
 
 <img src="https://www.svgrepo.com/show/354380/spring-icon.svg" alt="Spring Logo" width="120"/>
@@ -16,4 +16,5 @@ A lightweight and efficient email client built with Spring Boot and React.
 
 </div>
 
+----
 
