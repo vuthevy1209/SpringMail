@@ -15,16 +15,30 @@ export default function EmailBody({ content, messageId, attachments = [] }) {
         let newContent = content;
         const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
-        // Tìm tất cả các src="cid:..."
-        const cidRegex = /src="cid:([^"]+)"/g;
-        newContent = newContent.replace(cidRegex, (match, cid) => {
-            // Tìm attachment tương ứng với cid này
-            const attachment = attachments.find(att => att.contentId === cid);
-            if (attachment) {
-                return `src="${baseUrl}/get-attachment?messageId=${messageId}&attachmentId=${attachment.id}"`;
-            }
-            return match; // Trả về nguyên bản nếu không tìm thấy
-        });
+        // Replace cid: links with backend attachment URLs or Data URIs
+        if (attachments && attachments.length > 0) {
+            const cidRegex = /src=(['"]?)cid:([^'"]+)\1/gi;
+            newContent = newContent.replace(cidRegex, (match, quote, cid) => {
+                const normalizedCid = cid.replace(/[<>]/g, '').trim();
+                
+                const attachment = attachments.find(att => {
+                    if (!att.contentId) return false;
+                    const normalizedAttCid = att.contentId.replace(/[<>]/g, '').trim();
+                    return normalizedAttCid === normalizedCid;
+                });
+
+                if (attachment) {
+                    if (attachment.data) {
+                        const base64Data = attachment.data.replace(/-/g, '+').replace(/_/g, '/');
+                        return `src="data:${attachment.mimeType};base64,${base64Data}"`;
+                    }
+                    if (attachment.id) {
+                        return `src="${baseUrl}/mail/attachments?messageId=${messageId}&attachmentId=${attachment.id}"`;
+                    }
+                }
+                return match;
+            });
+        }
 
         // Inject CSS để tránh ảnh quá to làm vỡ layout
         const styleTag = `

@@ -1,7 +1,10 @@
 import React from 'react';
 
 export default function ThreadItem({ thread, isSelected, onClick }) {
-    const senderName = thread.latestSenderName || 'Unknown';
+    // Use the first sender from the senderNames list
+    const senderName = (thread.senderNames && thread.senderNames.length > 0) 
+        ? thread.senderNames[0] 
+        : 'Unknown';
     const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(senderName)}&background=random&color=fff&rounded=true&bold=true`;
 
     return (
@@ -48,7 +51,7 @@ export default function ThreadItem({ thread, isSelected, onClick }) {
                                 ? 'text-charcoal-ink font-semibold'
                                 : 'text-muted-steel font-normal'
                         }`}>
-                            {thread.latestDate ? new Date(thread.latestDate).toLocaleDateString() : ''}
+                            {thread.internalDate ? new Date(thread.internalDate).toLocaleDateString() : ''}
                         </span>
                     </div>
                 </div>

@@ -3,7 +3,7 @@ package com.vuthevy1209.springmail.controller;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
-import com.vuthevy1209.springmail.dto.response.ApiResponse;
+import com.vuthevy1209.springmail.dto.ApiResponse;
 import com.vuthevy1209.springmail.service.gmail.GmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -30,8 +30,8 @@ public class GmailTestController {
     ) throws IOException {
         String accessToken = extractToken(authHeader);
         return ApiResponse.<GmailListThreadsResponseDto>builder()
-            .result(gmailClient.listThreads(accessToken, query, maxResults, null))
-            .build();
+                .result(gmailClient.listThreads(accessToken, query, maxResults, null))
+                .build();
     }
 
     @GetMapping("/threads/{id}")
@@ -43,8 +43,8 @@ public class GmailTestController {
     ) throws IOException {
         String accessToken = extractToken(authHeader);
         return ApiResponse.<GmailThreadDto>builder()
-            .result(gmailClient.getThread(accessToken, threadId, format, metadataHeaders))
-            .build();
+                .result(gmailClient.getThread(accessToken, threadId, format, metadataHeaders))
+                .build();
     }
 
     @GetMapping("/messages/{messageId}/attachments/{id}")

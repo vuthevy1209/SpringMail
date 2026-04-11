@@ -1,22 +1,20 @@
 package com.vuthevy1209.springmail.configuration;
 
-import com.vuthevy1209.springmail.enums.SyncStatus;
 import com.vuthevy1209.springmail.converters.UserConverter;
 import com.vuthevy1209.springmail.entity.User;
 import com.vuthevy1209.springmail.repository.UserRepository;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 import java.time.Instant;
 
 import com.vuthevy1209.springmail.service.mail.MailSyncService;
@@ -35,25 +33,39 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     private final UserConverter userConverter;
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-                                        Authentication authentication) throws IOException, ServletException {
+    public void onAuthenticationSuccess(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
+                                        @NonNull Authentication authentication) throws IOException {
 
         OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
-        String googleId = oidcUser.getAttribute("googleId");
+        
+        if (oidcUser == null) {
+            log.error("Authentication failed: OidcUser is null");
+            getRedirectStrategy().sendRedirect(request, response, "http://localhost:5173/login?error=missing_user");
+            return;
+        }
+
         String email = oidcUser.getAttribute("email");
+        
+        if (email == null) {
+            log.error("Authentication failed: email attribute is missing from OidcUser");
+            getRedirectStrategy().sendRedirect(request, response, "http://localhost:5173/login?error=missing_email");
+            return;
+        }
 
         // 1. Upsert User vào MongoDB
-        User user = userRepository.findByGoogleId(googleId);
-        Instant now = Instant.now();
+        User user = userRepository.findByEmail(email)
+                .map(existingUser -> {
+                    userConverter.updateEntity(existingUser, oidcUser, authentication.getAuthorities());
+                    log.info("Updated existing user: {}", email);
+                    return existingUser;
+                })
+                .orElseGet(() -> {
+                    User newUser = userConverter.toEntity(oidcUser, authentication.getAuthorities());
+                    log.info("Created new user: {}", email);
+                    return newUser;
+                });
 
-        if (user == null) {
-            user = userConverter.toEntity(oidcUser, authentication.getAuthorities());
-            log.info("Created new user: {}", email);
-        } else {
-            userConverter.updateEntity(user, oidcUser, authentication.getAuthorities());
-            log.info("Updated existing user: {}", email);
-        }
-        user.setUpdatedAt(now);
+        user.setUpdatedAt(Instant.now());
         User savedUser = userRepository.save(user);
 
 		// 2. Trigger background mail sync
@@ -62,13 +74,11 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 		var authorizedClient = authorizedClientService.loadAuthorizedClient(clientRegistrationId, oauthToken.getName());
 		if (authorizedClient != null && authorizedClient.getAccessToken() != null) {
 			String accessTokenValue = authorizedClient.getAccessToken().getTokenValue();
-			CompletableFuture.runAsync(() -> {
-				try {
-					mailSyncService.syncMail(savedUser, accessTokenValue);
-				} catch (IOException e) {
-					System.err.println("Background sync failed for user " + email + ": " + e.getMessage());
-				}
-			});
+            try {
+                mailSyncService.syncMail(savedUser, accessTokenValue);
+            } catch (IOException e) {
+                log.error("Background sync failed for user {}: {}", email, e.getMessage());
+            }
 		}
 
         // 3. Điều hướng về Frontend

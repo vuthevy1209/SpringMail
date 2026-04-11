@@ -46,6 +46,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 	private final MailMessageConverter mailMessageConverter;
 
 	private final String FORMAT = "full";
+	private final Long QUANTITY_OF_THREAD_NEEDED_TO_SYNC = 200L;
 
 
 	@Override
@@ -71,7 +72,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 		Long lastHistoryId = profile.getHistoryId();
 
 		// Step 2: Fetch the first page of threads
-		GmailListThreadsResponseDto threadsResponse = gmailService.listThreads(accessToken, null, 50L, null);
+		GmailListThreadsResponseDto threadsResponse = gmailService.listThreads(accessToken, null, QUANTITY_OF_THREAD_NEEDED_TO_SYNC, null);
 
 		if (threadsResponse.getThreads() != null) {
 			for (GmailThreadDto threadMetadata : threadsResponse.getThreads()) {

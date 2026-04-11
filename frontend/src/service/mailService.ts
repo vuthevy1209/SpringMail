@@ -1,12 +1,8 @@
 import api from './api';
 
 class MailService {
-    async fetchEmails(folder: string, category?: string, signal?: AbortSignal) {
-        let apiUrl = `/mail/threads?folder=${folder}`;
-        if (folder === 'inbox' && category) {
-            apiUrl += `&category=${category}`;
-        }
-        const response = await api.get(apiUrl, { signal });
+    async fetchEmails(labelIds: string[], page: number = 0, size: number = 10, signal?: AbortSignal) {
+        const response = await api.post(`/mail/threads?page=${page}&size=${size}`, { labelIds }, { signal });
         return response.data.result;
     }
 
@@ -16,19 +12,16 @@ class MailService {
     }
 
     async downloadAttachment(messageId: string, attachmentId: string, filename?: string, mimeType?: string) {
-        let url = `/mail/attachments?messageId=${messageId}&attachmentId=${attachmentId}`;
-        if (filename) url += `&filename=${encodeURIComponent(filename)}`;
-        if (mimeType) url += `&mimeType=${encodeURIComponent(mimeType)}`;
-
-        const response = await api.get(url, { responseType: 'blob' });
-        const blob = new Blob([response.data]);
+        const payload = { messageId, attachmentId, filename, mimeType };
+        const response = await api.post('/mail/attachments', payload, { responseType: 'blob' });
+        
+        const blob = new Blob([response.data], { type: mimeType || 'application/octet-stream' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = filename || 'attachment';
         link.click();
         URL.revokeObjectURL(link.href);
     }
-
 }
 
 export default new MailService();

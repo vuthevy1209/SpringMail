@@ -27,38 +27,59 @@ export default function MailboxPage({ folder }) {
 
 
 
-	// Fetch emails whenever folder changes or inbox tab changes
-	useEffect(() => {
-		const controller = new AbortController();
+    const getLabelIds = () => {
+        if (folder === 'sent') return ['SENT'];
+        if (folder === 'drafts') return ['DRAFT'];
+        if (folder === 'trash') return ['TRASH'];
+        if (folder === 'starred') return ['STARRED'];
+        if (folder === 'important') return ['IMPORTANT'];
+        if (folder === 'spam') return ['SPAM'];
+        if (folder === 'inbox') {
+            const tabs = {
+                primary: 'CATEGORY_PERSONAL',
+                social: 'CATEGORY_SOCIAL',
+                promotions: 'CATEGORY_PROMOTIONS',
+                updates: 'CATEGORY_UPDATES',
+                forums: 'CATEGORY_FORUMS'
+            };
+            return ['INBOX', tabs[activeTab] || 'CATEGORY_PERSONAL'];
+        }
+        return ['INBOX'];
+    };
 
-		const fetchLatestEmails = async () => {
-			setThreads([]);
-			setSelectedThreadId(null);
-			setSelectedThreadData(null);
-			setIsLoadingThreads(true);
-			setShowUnreadOnly(false); // Reset filter when switching folders
+    // Fetch emails whenever folder changes or inbox tab changes
+    useEffect(() => {
+        const controller = new AbortController();
 
-			try {
-				const data = await mailService.fetchEmails(folder, activeTab, controller.signal);
-				setThreads(data);
-			} catch (error) {
-				if (error.name === 'CanceledError' || error.name === 'AbortError' || error.message === 'canceled') {
-					return;
-				}
-				console.error("Failed to fetch emails:", error);
-			} finally {
-				if (!controller.signal.aborted) {
-					setIsLoadingThreads(false);
-				}
-			}
-		};
+        const fetchLatestEmails = async () => {
+            setThreads([]);
+            setSelectedThreadId(null);
+            setSelectedThreadData(null);
+            setIsLoadingThreads(true);
+            setShowUnreadOnly(false); // Reset filter when switching folders
 
-		fetchLatestEmails();
+            try {
+                const labelIds = getLabelIds();
+                const data = await mailService.fetchEmails(labelIds, 0, 20, controller.signal);
+                setThreads(data.content || []);
+            } catch (error) {
+                if (error.name === 'CanceledError' || error.name === 'AbortError' || error.message === 'canceled') {
+                    return;
+                }
+                console.error("Failed to fetch emails:", error);
+            } finally {
+                if (!controller.signal.aborted) {
+                    setIsLoadingThreads(false);
+                }
+            }
+        };
 
-		return () => {
-			controller.abort();
-		};
-	}, [folder, activeTab]);
+        fetchLatestEmails();
+
+        return () => {
+            controller.abort();
+        };
+    }, [folder, activeTab]);
 
 	// Fetch thread detail when selectedThreadId changes
 	useEffect(() => {
@@ -94,7 +115,7 @@ export default function MailboxPage({ folder }) {
 	}, [selectedThreadId]);
 
 	const displayThreads = showUnreadOnly 
-		? threads.filter(t => !t.isRead) 
+		? threads.filter(t => t.unread) 
 		: threads;
 
 	return (

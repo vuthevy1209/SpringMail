@@ -1,6 +1,6 @@
 package com.vuthevy1209.springmail.exception;
 
-import com.vuthevy1209.springmail.dto.response.ApiResponse;
+import com.vuthevy1209.springmail.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;

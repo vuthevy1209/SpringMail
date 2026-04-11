@@ -10,7 +10,7 @@ import java.util.List;
 public interface MailMessageRepository extends MongoRepository<MailMessage, String> {
     List<MailMessage> findByThreadId(String threadId);
     List<MailMessage> findByUserId(String userId);
+    List<MailMessage> findByThreadIdOrderByInternalDateAsc(String threadId);
     void deleteByThreadId(String threadId);
-    void deleteByGoogleId(String googleId);
     long countByThreadId(String threadId);
 }

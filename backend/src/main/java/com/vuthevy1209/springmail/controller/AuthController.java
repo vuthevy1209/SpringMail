@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.ServletException;
-import com.vuthevy1209.springmail.dto.response.ApiResponse;
-import com.vuthevy1209.springmail.dto.response.auth.UserResponse;
+import com.vuthevy1209.springmail.dto.ApiResponse;
+import com.vuthevy1209.springmail.dto.auth.UserResponse;
 import com.vuthevy1209.springmail.service.auth.AuthService;
 
 import lombok.RequiredArgsConstructor;

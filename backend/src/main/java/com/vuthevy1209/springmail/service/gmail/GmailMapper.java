@@ -177,14 +177,20 @@ public class GmailMapper {
 		String filename = part.getFilename();
 		MessagePartBody body = part.getBody();
 
-		// Attachment check
-		if (filename != null && !filename.isEmpty() && body != null && body.getAttachmentId() != null) {
+		// Attachment or Inline Image check
+		String cid = getContentId(part);
+		boolean isInline = cid != null;
+		boolean hasBody = body != null && (body.getAttachmentId() != null || body.getData() != null);
+		boolean isAttachment = filename != null && !filename.isEmpty() && hasBody;
+
+		if (isAttachment || (isInline && hasBody)) {
 			attachments.add(GmailAttachmentDto.builder()
-					.attachmentId(body.getAttachmentId())
+					.attachmentId(body != null ? body.getAttachmentId() : null)
 					.filename(filename)
 					.mimeType(mimeType)
-					.size(body.getSize() != null ? (long) body.getSize() : null)
-					.contentId(getContentId(part))
+					.size(body != null && body.getSize() != null ? body.getSize().longValue() : null)
+					.contentId(cid)
+					.data(body != null ? body.getData() : null)
 					.build());
 		}
 
@@ -239,6 +245,7 @@ public class GmailMapper {
 				.filename(filename)
 				.mimeType(mimeType)
 				.size(body.getSize() != null ? body.getSize().longValue() : null)
+				.data(body.getData())
 				.build();
 	}
 

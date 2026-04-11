@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.dto.response.auth;
+package com.vuthevy1209.springmail.dto.auth;
 
 import com.vuthevy1209.springmail.enums.SyncStatus;
 import lombok.Builder;

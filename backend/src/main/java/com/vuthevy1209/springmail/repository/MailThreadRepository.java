@@ -1,24 +1,22 @@
 package com.vuthevy1209.springmail.repository;
 
 import com.vuthevy1209.springmail.entity.MailThread;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface MailThreadRepository extends MongoRepository<MailThread, String> {
 
-	List<MailThread> findByUserId(String userId);
+	Page<MailThread> findByUserId(String userId, Pageable pageable);
 
-	/** Tất cả threads của user, sắp xếp mới → cũ */
-	List<MailThread> findByUserIdOrderByLastMessageTimestampDesc(String userId);
+	@Query("{ 'userId': ?0, 'labelIds': { $all: ?1 } }")
+	Page<MailThread> findByUserIdAndLabelIdsContainsAll(String userId, List<String> labelIds, Pageable pageable);
 
-	/**
-	 * Threads của user có chứa bất kỳ labelId nào trong collection, sắp xếp mới → cũ.
-	 */
-	List<MailThread> findByUserIdAndLabelIdsInOrderByLastMessageTimestampDesc(
-			String userId, Collection<String> labelIds);
+	Optional<MailThread> findByIdAndUserId(String id, String userId);
 }
-

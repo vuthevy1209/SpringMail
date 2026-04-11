@@ -6,7 +6,7 @@ import com.vuthevy1209.springmail.enums.SyncStatus;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
-import com.vuthevy1209.springmail.dto.response.auth.UserResponse;
+import com.vuthevy1209.springmail.dto.auth.UserResponse;
 
 import jakarta.servlet.ServletException;
 import com.vuthevy1209.springmail.repository.UserRepository;

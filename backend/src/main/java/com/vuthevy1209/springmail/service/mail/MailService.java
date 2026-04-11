@@ -1,17 +1,18 @@
 package com.vuthevy1209.springmail.service.mail;
 
-import com.vuthevy1209.springmail.dto.response.mail.MailThreadResponse;
-import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
+import com.vuthevy1209.springmail.dto.mail.request.AttachmentRequest;
+import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
+import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
+import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
-import java.util.List;
+import org.springframework.data.domain.Page;
 
 public interface MailService {
-	List<MailThreadResponse> getMailThreads(String folder, String category) throws IOException;
 
-	MailThreadResponse getThreadDetails(String threadId) throws IOException;
+	Page<MailThreadResponse> getMailThreads(MailThreadsRequest request, int page, int size) throws IOException;
 
-	GmailAttachmentDto getAttachment(String messageId, String attachmentId, String filename, String mimeType) throws IOException;
+	MailThreadResponse getThreadDetail(String threadId) throws IOException;
 
-	void syncMail() throws IOException;
+	ResponseEntity<byte[]> getAttachment(AttachmentRequest request) throws IOException;
 }

@@ -1,6 +1,6 @@
 package com.vuthevy1209.springmail.service.auth;
 
-import com.vuthevy1209.springmail.dto.response.auth.UserResponse;
+import com.vuthevy1209.springmail.dto.auth.UserResponse;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 

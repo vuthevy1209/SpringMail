@@ -1,4 +1,5 @@
 import { Sparkles, ListChecks, Paperclip, FileText } from 'lucide-react';
+import mailService from '../../service/mailService';
 import EmailBody from './EmailBody';
 import EmailReaderSkeleton from './EmailReaderSkeleton';
 import { LAYOUT } from '../../constants/layout';
@@ -53,29 +54,29 @@ export default function EmailReader({ selectedThread, isLoading }) {
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 shrink-0">
                                             <img
-                                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(email.senderName || 'Unknown')}&background=random&color=fff&rounded=true&bold=true`}
-                                                alt={email.senderName}
+                                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(email.fromName || 'Unknown')}&background=random&color=fff&rounded=true&bold=true`}
+                                                alt={email.fromName}
                                                 className="w-full h-full rounded-full"
                                             />
                                         </div>
                                         <div>
                                             <div className="font-semibold text-charcoal-ink">
-                                                {email.senderName || '(Unknown)'}
+                                                {email.fromName || '(Unknown)'}
                                             </div>
                                             <div className="text-[13px] text-muted-steel">
-                                                {email.senderEmail ? `<${email.senderEmail}>` : ''}
+                                                {email.fromEmail ? `<${email.fromEmail}>` : ''}
                                             </div>
                                         </div>
                                     </div>
                                     <div className="text-muted-steel text-sm">
-                                        {email.date ? new Date(email.date).toLocaleString() : ''}
+                                        {email.internalDate ? new Date(email.internalDate).toLocaleString() : ''}
                                     </div>
                                 </div>
 
                                 {/* Isolated Email Body */}
                                 <div className="text-charcoal-ink text-[15px] leading-relaxed break-words">
                                     <EmailBody 
-                                        content={email.content} 
+                                        content={email.bodyHtml || email.bodyText} 
                                         messageId={email.id}
                                         attachments={email.attachments}
                                     />
@@ -92,16 +93,14 @@ export default function EmailReader({ selectedThread, isLoading }) {
                                             {email.attachments
                                                 .filter(att => !att.contentId)
                                                 .map((att) => (
-                                                <a
+                                                <button
                                                     key={att.id}
-                                                    href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/get-attachment?messageId=${email.id}&attachmentId=${att.id}&filename=${encodeURIComponent(att.filename)}&contentType=${encodeURIComponent(att.mimeType)}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
+                                                    onClick={() => mailService.downloadAttachment(email.id, att.id, att.filename, att.mimeType)}
                                                     className="flex items-center gap-2 px-3 py-2 border border-whisper/50 rounded-lg bg-canvas-gray text-[12px] text-charcoal-ink shadow-sm hover:bg-whisper/30 transition-colors"
                                                 >
                                                     <FileText size={14} className="text-spring-green" />
                                                     <span className="max-w-[200px] truncate" title={att.filename}>{att.filename}</span>
-                                                </a>
+                                                </button>
                                             ))}
                                         </div>
                                     </div>

@@ -1,7 +1,7 @@
 package com.vuthevy1209.springmail.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vuthevy1209.springmail.dto.response.ApiResponse;
+import com.vuthevy1209.springmail.dto.ApiResponse;
 import com.vuthevy1209.springmail.exception.ErrorCode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

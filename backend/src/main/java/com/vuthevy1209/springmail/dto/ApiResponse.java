@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.dto.response;
+package com.vuthevy1209.springmail.dto;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -9,10 +9,10 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ApiResponse<T> {
-    @Builder.Default
-    String code = "success";
+	@Builder.Default
+	String code = "1000";
 
-    String message;
+	String message;
 
-    T result;
+	T result;
 }
