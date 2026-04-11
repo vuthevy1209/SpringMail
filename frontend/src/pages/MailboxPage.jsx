@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import authService from '../service/authService';
 import mailService from '../service/mailService';
@@ -32,6 +32,8 @@ export default function MailboxPage({ folder }) {
 	// Filter unread only
 	const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
+	const fetchControllerRef = useRef(null);
+
 
 
     const getLabelIds = () => {
@@ -56,7 +58,11 @@ export default function MailboxPage({ folder }) {
 
     // Fetch emails whenever folder changes or inbox tab changes
     useEffect(() => {
+        if (fetchControllerRef.current) {
+            fetchControllerRef.current.abort();
+        }
         const controller = new AbortController();
+        fetchControllerRef.current = controller;
 
         const fetchLatestEmails = async () => {
             setThreads([]);
@@ -64,6 +70,7 @@ export default function MailboxPage({ folder }) {
             setSelectedThreadData(null);
             setIsLoadingThreads(true);
             setShowUnreadOnly(false); // Reset filter when switching folders
+            setIsLoadingMore(false);
 
             setDbPage(0);
             setHasMoreLocal(true);
@@ -72,9 +79,31 @@ export default function MailboxPage({ folder }) {
 
             try {
                 const labelIds = getLabelIds();
-                const data = await mailService.fetchEmails(labelIds, 0, 20, controller.signal);
-                setThreads(data.content || []);
-                setHasMoreLocal(!data.last);
+                let data = await mailService.fetchEmails(labelIds, 0, 20, controller.signal);
+                let fetchedThreads = data.content || [];
+                let localHasMore = !data.last;
+
+                if (fetchedThreads.length === 0) {
+                    try {
+                        const googleData = await mailService.fetchOlderFromGoogle(labelIds, null, null, controller.signal);
+                        if (!controller.signal.aborted) {
+                            setGooglePageToken(googleData.nextPageToken);
+                            setHasMoreGoogle(!!googleData.nextPageToken);
+                        }
+                        
+                        data = await mailService.fetchEmails(labelIds, 0, 20, controller.signal);
+                        fetchedThreads = data.content || [];
+                        localHasMore = !data.last;
+                    } catch (e) {
+                         if (e.name === 'CanceledError' || e.name === 'AbortError' || e.message === 'canceled') return;
+                         console.error("Auto fetch older failed:", e);
+                    }
+                }
+
+                if (!controller.signal.aborted) {
+                    setThreads(fetchedThreads);
+                    setHasMoreLocal(localHasMore);
+                }
             } catch (error) {
                 if (error.name === 'CanceledError' || error.name === 'AbortError' || error.message === 'canceled') {
                     return;
@@ -130,14 +159,16 @@ export default function MailboxPage({ folder }) {
 	const handleLoadMore = async () => {
 		if (isLoadingMore) return;
 		setIsLoadingMore(true);
+        const signal = fetchControllerRef.current?.signal;
 
 		try {
 			const labelIds = getLabelIds();
 
 			if (hasMoreLocal) {
 				const nextDbPage = Math.floor(threads.length / 20);
-				const data = await mailService.fetchEmails(labelIds, nextDbPage, 20);
+				const data = await mailService.fetchEmails(labelIds, nextDbPage, 20, signal);
 				
+                if (signal?.aborted) return;
 				setThreads(prev => {
 					const existingIds = new Set(prev.map(t => t.id));
 					const newItems = (data.content || []).filter(t => !existingIds.has(t.id));
@@ -151,8 +182,9 @@ export default function MailboxPage({ folder }) {
 				const beforeTimestamp = oldestThread ? oldestThread.lastMessageTimestamp : null;
 
 				// Fallback to fetch older from google
-				const googleData = await mailService.fetchOlderFromGoogle(labelIds, googlePageToken, beforeTimestamp);
+				const googleData = await mailService.fetchOlderFromGoogle(labelIds, googlePageToken, beforeTimestamp, signal);
 				
+                if (signal?.aborted) return;
 				setGooglePageToken(googleData.nextPageToken);
 				if (!googleData.nextPageToken) {
 					setHasMoreGoogle(false);
@@ -160,8 +192,9 @@ export default function MailboxPage({ folder }) {
 
 				// Then try fetching again from local DB using correct page index
 				const currentDbPage = Math.floor(threads.length / 20);
-				const data = await mailService.fetchEmails(labelIds, currentDbPage, 20);
+				const data = await mailService.fetchEmails(labelIds, currentDbPage, 20, signal);
 				
+                if (signal?.aborted) return;
 				setThreads(prev => {
 					const existingIds = new Set(prev.map(t => t.id));
 					const newItems = (data.content || []).filter(t => !existingIds.has(t.id));
@@ -172,9 +205,12 @@ export default function MailboxPage({ folder }) {
 				setHasMoreLocal(!data.last);
 			}
 		} catch (error) {
+            if (error.name === 'CanceledError' || error.name === 'AbortError' || error.message === 'canceled') return;
 			console.error("Failed to load more emails:", error);
 		} finally {
-			setIsLoadingMore(false);
+            if (!signal?.aborted) {
+			    setIsLoadingMore(false);
+            }
 		}
 	};
 

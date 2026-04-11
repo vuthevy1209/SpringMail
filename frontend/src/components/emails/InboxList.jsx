@@ -112,7 +112,7 @@ export default function InboxList({
                     <>
                         {isLoadingMore ? (
                             <div className="mt-2">
-                                <InboxListSkeleton count={3} />
+                                <InboxListSkeleton count={8} />
                             </div>
                         ) : (
                             <div className="flex justify-center mt-6 mb-6">
