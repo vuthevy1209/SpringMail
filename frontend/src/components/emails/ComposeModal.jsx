@@ -29,7 +29,8 @@ export default function ComposeModal({ isOpen, onClose }) {
         let isHtml = editorType === 'html';
         
         if (editorType === 'markdown') {
-            finalBody = await marked.parse(body);
+            const parsedHtml = await marked.parse(body);
+            finalBody = `<div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 14px; line-height: 1.6; color: #333;">${parsedHtml}</div>`;
             isHtml = true;
         }
         
@@ -216,7 +217,7 @@ export default function ComposeModal({ isOpen, onClose }) {
                             editorType === 'markdown' ? (
                                 <ReactMarkdown
                                     components={{
-                                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2" {...props} />,
+                                        h1: ({node, ...props}) => <h1    className="text-2xl font-bold mt-4 mb-2" {...props} />,
                                         h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2" {...props} />,
                                         h3: ({node, ...props}) => <h3 className="text-[15px] font-bold mt-2 mb-1" {...props} />,
                                         p: ({node, ...props}) => <p className="mb-2" {...props} />,
@@ -226,10 +227,8 @@ export default function ComposeModal({ isOpen, onClose }) {
                                         strong: ({node, ...props}) => <strong className="font-bold text-charcoal-ink" {...props} />,
                                         em: ({node, ...props}) => <em className="italic text-charcoal-ink/70" {...props} />,
                                         blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-whisper pl-4 py-1 my-2 italic text-muted-steel bg-canvas-gray/30 rounded-r" {...props} />,
-                                        code: ({node, inline, ...props}) => 
-                                            inline 
-                                                ? <code className="bg-canvas-gray border border-whisper/60 px-1.5 py-0.5 rounded text-[13px] font-mono text-spring-green" {...props} />
-                                                : <pre className="bg-charcoal-ink text-whisper p-4 rounded-lg overflow-x-auto my-3 text-[13px] font-mono shadow-sm"><code {...props} /></pre>,
+                                        pre: ({node, ...props}) => <pre className="bg-charcoal-ink text-whisper p-4 rounded-lg overflow-x-auto my-3 text-[13px] font-mono shadow-sm [&_code]:bg-transparent [&_code]:text-inherit [&_code]:p-0 [&_code]:m-0" {...props} />,
+                                        code: ({node, className, ...props}) => <code className={`${className || ''} bg-red-50 text-red-500 px-1.5 py-0.5 rounded text-[13px] font-mono mx-0.5`} {...props} />,
                                         a: ({node, ...props}) => <a className="text-blue-500 hover:text-blue-600 hover:underline cursor-pointer" target="_blank" rel="noopener noreferrer" {...props} />,
                                     }}
                                 >
@@ -288,7 +287,6 @@ export default function ComposeModal({ isOpen, onClose }) {
                     className="flex items-center gap-2 bg-spring-green hover:bg-spring-green/90 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed relative"
                 >
                     <span>Send</span>
-                    <Send size={16} />
                 </button>
                 
                 <div className="flex items-center gap-2 text-muted-steel">
