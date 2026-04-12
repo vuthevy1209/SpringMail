@@ -6,11 +6,10 @@ import com.google.api.services.gmail.model.MessagePartBody;
 import com.google.api.services.gmail.model.Profile;
 import com.google.api.services.gmail.model.Thread;
 import java.util.List;
+
+import com.vuthevy1209.springmail.service.gmail.dto.thread.ModifyThreadRequestDto;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 @FeignClient(name = "gmailFeignClient", url = "https://gmail.googleapis.com", configuration = GmailFeignConfiguration.class)
 public interface GmailFeignClient {
@@ -47,6 +46,19 @@ public interface GmailFeignClient {
             @RequestParam("startHistoryId") String startHistoryId,
             @RequestParam(value = "maxResults", required = false) Long maxResults,
             @RequestParam(value = "pageToken", required = false) String pageToken
+    );
+
+    @PostMapping(value = "/gmail/v1/users/me/threads/{id}/modify", produces = "application/json", consumes = "application/json")
+    Thread modifyThread(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable("id") String threadId,
+            @RequestBody ModifyThreadRequestDto request
+    );
+
+    @PostMapping(value = "/gmail/v1/users/me/threads/{id}/trash", produces = "application/json")
+    Thread trashThread(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable("id") String threadId
     );
 }
 

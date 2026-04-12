@@ -1,10 +1,7 @@
 package com.vuthevy1209.springmail.service.gmail.library;
 
 import com.google.api.services.gmail.Gmail;
-import com.google.api.services.gmail.model.ListHistoryResponse;
-import com.google.api.services.gmail.model.ListThreadsResponse;
-import com.google.api.services.gmail.model.MessagePartBody;
-import com.google.api.services.gmail.model.Profile;
+import com.google.api.services.gmail.model.*;
 import com.google.api.services.gmail.model.Thread;
 import com.vuthevy1209.springmail.configuration.GmailServiceFactory;
 import com.vuthevy1209.springmail.service.gmail.GmailService;
@@ -14,6 +11,7 @@ import com.vuthevy1209.springmail.service.gmail.dto.profile.GmailProfileDto;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailListHistoryResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
+import com.vuthevy1209.springmail.service.gmail.dto.thread.ModifyThreadRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
@@ -117,5 +115,27 @@ public class GoogleLibraryVersionGmailServiceImpl implements GmailService {
 		return threads.stream()
 				.map(GmailMapper::toGmailThreadDto)
 				.toList();
+	}
+
+	@Override
+	public GmailThreadDto modifyThread(String accessToken, String threadId, ModifyThreadRequestDto request) throws IOException {
+		Gmail service = gmailServiceFactory.build(accessToken);
+
+		ModifyThreadRequest modifyRequest = new ModifyThreadRequest()
+			.setAddLabelIds(request.getAddLabelIds())
+			.setRemoveLabelIds(request.getRemoveLabelIds());
+
+		Thread thread = service.users().threads().modify("me", threadId, modifyRequest).execute();
+
+		return GmailMapper.toGmailThreadDto(thread);
+	}
+
+	@Override
+	public GmailThreadDto trashThread(String accessToken, String threadId) throws IOException {
+		Gmail service = gmailServiceFactory.build(accessToken);
+
+		Thread thread = service.users().threads().trash("me", threadId).execute();
+
+		return GmailMapper.toGmailThreadDto(thread);
 	}
 }

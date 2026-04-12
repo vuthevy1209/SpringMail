@@ -38,29 +38,21 @@ public class MailThreadConverter {
 
 		if (messages != null && !messages.isEmpty()) {
 			response.setMessages(mailMessageConverter.toMailMessageResponse(messages));
-		}
-
-		return response;
-	}
-
-	public MailThreadResponse toMailThreadResponse(GmailThreadDto gmailThreadDto) {
-		MailThreadResponse response = modelMapper.map(gmailThreadDto, MailThreadResponse.class);
-		
-		boolean isUnread = gmailThreadDto.getMessages() != null && gmailThreadDto.getMessages().stream()
-				.anyMatch(m -> m.getLabelIds() != null && m.getLabelIds().contains(MailLabel.UNREAD.getId()));
-		
-		response.setUnread(isUnread);
-		
-		if (gmailThreadDto.getMessages() != null) {
-			response.setMessages(gmailThreadDto.getMessages().stream()
-					.map(mailMessageConverter::toMailMessageResponse)
-					.collect(Collectors.toList()));
-					
-			if (!gmailThreadDto.getMessages().isEmpty()) {
-				response.setInternalDate(gmailThreadDto.getMessages().get(gmailThreadDto.getMessages().size() - 1).getInternalDate());
+			if (!isUnread) {
+				response.getMessages().forEach(m -> {
+					if (m.getLabelIds() != null) {
+						m.getLabelIds().remove(MailLabel.UNREAD.getId());
+					}
+				});
+			} else {
+				response.getMessages().forEach(m -> {
+					if (m.getLabelIds() != null && !m.getLabelIds().contains(MailLabel.UNREAD.getId())) {
+						m.getLabelIds().add(MailLabel.UNREAD.getId());
+					}
+				});
 			}
 		}
-		
+
 		return response;
 	}
 }

@@ -4,6 +4,7 @@ import com.vuthevy1209.springmail.dto.ApiResponse;
 import com.vuthevy1209.springmail.dto.mail.request.AttachmentRequest;
 import com.vuthevy1209.springmail.dto.mail.request.FetchOlderRequest;
 import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
+import com.vuthevy1209.springmail.dto.mail.request.ThreadActionRequest;
 import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
 import com.vuthevy1209.springmail.service.mail.MailService;
@@ -59,12 +60,28 @@ public class MailController {
                 .filename(filename)
                 .mimeType(mimeType)
                 .build();
+
         return mailService.getAttachment(request);
     }
+
 	@PostMapping("/sync/fetch-older")
 	public ApiResponse<FetchOlderResponse> fetchOlderThreads(@RequestBody FetchOlderRequest request) throws IOException {
 		return ApiResponse.<FetchOlderResponse>builder()
 				.result(mailSyncService.fetchOlderThreads(request))
 				.build();
 	}
+
+	@PostMapping("/threads/{id}/modify")
+	public ApiResponse<MailThreadResponse> modifyThread(@PathVariable String id, @RequestBody ThreadActionRequest request) throws IOException {
+		return ApiResponse.<MailThreadResponse>builder()
+				.result(mailService.modifyThread(id, request))
+				.build();
+	}
+
+	@DeleteMapping("/threads/{id}/trash")
+	public ApiResponse<Void> trashThread(@PathVariable String id) throws IOException {
+		mailService.trashThread(id);
+		return ApiResponse.<Void>builder().build();
+	}
+
 }

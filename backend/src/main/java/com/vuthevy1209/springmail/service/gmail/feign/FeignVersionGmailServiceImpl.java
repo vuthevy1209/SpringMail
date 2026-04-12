@@ -54,6 +54,18 @@ public class FeignVersionGmailServiceImpl implements GmailService {
 	}
 
 	@Override
+	public GmailThreadDto modifyThread(String accessToken, String threadId, com.vuthevy1209.springmail.service.gmail.dto.thread.ModifyThreadRequestDto request) throws IOException {
+			Thread thread = gmailFeignClient.modifyThread("Bearer " + accessToken, threadId, request);
+			return GmailMapper.toGmailThreadDto(thread);
+	}
+
+	@Override
+	public GmailThreadDto trashThread(String accessToken, String threadId) throws IOException {
+			Thread thread = gmailFeignClient.trashThread("Bearer " + accessToken, threadId);
+			return GmailMapper.toGmailThreadDto(thread);
+	}
+
+	@Override
 	public List<GmailThreadDto> getThreadsBatch(String accessToken, List<String> threadIds) throws IOException {
 		throw new UnsupportedOperationException("Batch requests not supported in Feign version");
 	}

@@ -25,7 +25,7 @@ import EmailBody from "./EmailBody";
 import EmailReaderSkeleton from "./EmailReaderSkeleton";
 import { LAYOUT } from "../../constants/layout";
 
-export default function EmailReader({ selectedThread, isLoading }) {
+export default function EmailReader({ selectedThread, isLoading, onThreadUpdated, onThreadDeleted }) {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [actionToConfirm, setActionToConfirm] = useState(null);
     const [summary, setSummary] = useState(null);
@@ -39,18 +39,63 @@ export default function EmailReader({ selectedThread, isLoading }) {
         setIsSummarizing(false);
         setIsReplying(false);
         setReplyContent("");
-    }, [selectedThread]);
+
+        if (selectedThread) {
+            // Mark as read when thread is selected
+            const hasUnread = selectedThread.messages?.some(msg => msg.labelIds?.includes("UNREAD"));
+            if (hasUnread) {
+                mailService.modifyThread(selectedThread.id, [], ["UNREAD"]).then(updatedData => {
+                    if(onThreadUpdated) onThreadUpdated(updatedData);
+                }).catch(err => {
+                    console.error("Failed to mark as read", err);
+                });
+            }
+        }
+    }, [selectedThread?.id]);
 
     const handleActionClick = (actionName) => {
         setActionToConfirm(actionName);
         setIsConfirmModalOpen(true);
     };
 
-    const handleConfirmAction = () => {
-        // TODO: Implement logic here based on actionToConfirm
-        // console.log("Confirmed action:", actionToConfirm);
-        setIsConfirmModalOpen(false);
-        setActionToConfirm(null);
+    const handleConfirmAction = async () => {
+        if (!actionToConfirm || !thread) return;
+        
+        try {
+            let updatedData = null;
+            let shouldDelete = false;
+
+            if (actionToConfirm === 'Archive') {
+                updatedData = await mailService.modifyThread(thread.id, [], ["INBOX"]);
+                shouldDelete = true; // In Inbox view, archive means hide from Inbox
+            } else if (actionToConfirm === 'Report spam') {
+                updatedData = await mailService.modifyThread(thread.id, ["SPAM"], ["INBOX"]);
+                shouldDelete = true;
+            } else if (actionToConfirm === 'Delete') {
+                await mailService.trashThread(thread.id);
+                shouldDelete = true;
+            } else if (actionToConfirm === 'Mark as read') {
+                updatedData = await mailService.modifyThread(thread.id, [], ["UNREAD"]);
+            } else if (actionToConfirm === 'Mark as unread') {
+                updatedData = await mailService.modifyThread(thread.id, ["UNREAD"], []);
+            } else if (actionToConfirm.startsWith('Move to')) {
+                const folderName = actionToConfirm.replace('Move to ', '');
+                const targetLabelId = folderName.toUpperCase();
+                updatedData = await mailService.modifyThread(thread.id, [targetLabelId], ["INBOX"]);
+                shouldDelete = true;
+            }
+
+            if (shouldDelete) {
+                if (onThreadDeleted) onThreadDeleted(thread.id);
+            } else if (updatedData) {
+                if (onThreadUpdated) onThreadUpdated(updatedData);
+            }
+        } catch (error) {
+            console.error(`Failed to execute ${actionToConfirm}`, error);
+        } finally {
+            setIsConfirmModalOpen(false);
+            setActionToConfirm(null);
+        }
     };
 
     const handleCancelAction = () => {
@@ -132,13 +177,23 @@ Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực 
                         <Trash2 size={16} />
                         <span>Delete</span>
                     </button>
-                    <button 
-                        onClick={() => handleActionClick('Mark as read')}
-                        className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors"
-                    >
-                        <Mail size={16} />
-                        <span>Mark as read</span>
-                    </button>
+                    {thread.messages?.some(msg => msg.labelIds?.includes('UNREAD')) ? (
+                        <button 
+                            onClick={() => handleActionClick('Mark as read')}
+                            className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors"
+                        >
+                            <Mail size={16} />
+                            <span>Mark as read</span>
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={() => handleActionClick('Mark as unread')}
+                            className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-4 py-2 rounded-lg bg-pure-surface font-medium hover:bg-canvas-gray transition-colors"
+                        >
+                            <Mail size={16} />
+                            <span>Mark as unread</span>
+                        </button>
+                    )}
                     
                     <div className="relative">
                         <button 

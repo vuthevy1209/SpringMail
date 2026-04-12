@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
-import authService from '../service/authService';
 import mailService from '../service/mailService';
 import InboxList from '../components/emails/InboxList';
 import EmailReader from '../components/emails/EmailReader';
@@ -240,7 +239,19 @@ export default function MailboxPage({ folder }) {
 				folder={folder}
 				selectedThread={selectedThreadData}
 				isLoading={isLoadingDetail}
-			/>
-		</>
-	);
+				onThreadUpdated={(updatedData) => {
+					const isUnread = updatedData.unread;
+					const fixedMessages = updatedData.messages?.map(m => ({ ...m, labelIds: isUnread ? m.labelIds : m.labelIds?.filter(l => l !== 'UNREAD') }));
+					const fixedData = { ...updatedData, unread: isUnread, messages: fixedMessages };
+					setSelectedThreadData(fixedData);
+					setThreads(prevThreads => prevThreads.map(t => (t.id === updatedData.id ? { ...t, ...fixedData } : t)));
+				}}
+				onThreadDeleted={(deletedId) => {
+					setSelectedThreadData(null);
+					setSelectedThreadId(null);
+					setThreads(prevThreads => prevThreads.filter(t => t.id !== deletedId));
+				}}
+                        />
+                </>
+        );
 }

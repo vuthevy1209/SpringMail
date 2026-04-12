@@ -27,6 +27,16 @@ class MailService {
         const response = await api.post('/mail/sync/fetch-older', { labelIds, pageToken, beforeTimestamp, maxResults: 50 }, { signal });
         return response.data.result;
     }
+
+    async modifyThread(threadId: string, addLabelIds: string[], removeLabelIds: string[]) {
+        const response = await api.post(`/mail/threads/${threadId}/modify`, { addLabelIds, removeLabelIds });
+        return response.data.result;
+    }
+
+    async trashThread(threadId: string) {
+        const response = await api.delete(`/mail/threads/${threadId}/trash`);
+        return response.data;
+    }
 }
 
 export default new MailService();

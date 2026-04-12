@@ -2,6 +2,7 @@ package com.vuthevy1209.springmail.service.mail;
 
 import com.vuthevy1209.springmail.dto.mail.request.AttachmentRequest;
 import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
+import com.vuthevy1209.springmail.dto.mail.request.ThreadActionRequest;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
 import com.vuthevy1209.springmail.repository.MailMessageRepository;
 import com.vuthevy1209.springmail.repository.MailThreadRepository;
@@ -12,6 +13,7 @@ import com.vuthevy1209.springmail.entity.MailThread;
 import com.vuthevy1209.springmail.entity.User;
 import com.vuthevy1209.springmail.service.gmail.GmailService;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
+import com.vuthevy1209.springmail.service.gmail.dto.thread.ModifyThreadRequestDto;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -142,5 +145,56 @@ public class MailServiceImpl implements MailService {
 			log.error("Failed to sync new emails for user {}", email, e);
 		}
 	}
-}
 
+	@Override
+	@Transactional
+	public MailThreadResponse modifyThread(String threadId, ThreadActionRequest request) throws IOException {
+			String accessToken = SecurityUtils.getAccessToken("google");
+			if (accessToken == null) {
+					throw new IOException("Failed to authorize OAuth2 client or get access token");
+			}
+
+			ModifyThreadRequestDto gmailRequest = ModifyThreadRequestDto.builder()
+					.addLabelIds(request.getAddLabelIds())
+					.removeLabelIds(request.getRemoveLabelIds())
+					.build();
+
+			gmailService.modifyThread(accessToken, threadId, gmailRequest);
+
+			MailThread thread = threadRepository.findById(threadId).orElse(null);
+			if (thread != null) {
+					if (request.getAddLabelIds() != null) {
+							for(String label : request.getAddLabelIds()) {
+									if(!thread.getLabelIds().contains(label)) {
+											thread.getLabelIds().add(label);
+									}
+							}
+					}
+					if (request.getRemoveLabelIds() != null) {
+							thread.getLabelIds().removeAll(request.getRemoveLabelIds());
+					}
+					threadRepository.save(thread);
+			}
+
+			return getThreadDetail(threadId);
+	}
+
+	@Override
+	@Transactional
+	public void trashThread(String threadId) throws IOException {
+			String accessToken = SecurityUtils.getAccessToken("google");
+			if (accessToken == null) {
+					throw new IOException("Failed to authorize OAuth2 client or get access token");
+			}
+			gmailService.trashThread(accessToken, threadId);
+
+			MailThread thread = threadRepository.findById(threadId).orElse(null);
+			if (thread != null) {
+					if(!thread.getLabelIds().contains("TRASH")) {
+							thread.getLabelIds().add("TRASH");
+					}
+					thread.getLabelIds().remove("INBOX");
+					threadRepository.save(thread);
+			}
+	}
+}
