@@ -245,8 +245,8 @@ Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực 
             {/* Reading Pane */}
             <div className="flex-1 px-12 py-8 overflow-y-auto">
                 <div className="max-w-[1000px] w-full mx-auto">
-                    <h1 className="text-2xl text-charcoal-ink mb-8 font-semibold">
-                        {thread.subject}
+                    <h1 className={`text-2xl mb-8 font-semibold ${thread.subject ? 'text-charcoal-ink' : 'text-muted-steel italic'}`}>
+                        {thread.subject || "(No subject)"}
                     </h1>
 
                     {/* AI Summary Section */}

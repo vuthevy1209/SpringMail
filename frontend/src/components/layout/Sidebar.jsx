@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Inbox, Send, FileText, Trash2, Settings, LogOut, X, ChevronLeft, ChevronRight, Star, Bookmark, AlertOctagon, PenSquare, Edit } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SpringIcon from '../../assets/spring-icon.svg';
+import ComposeModal from '../emails/ComposeModal';
 
 import { LAYOUT } from '../../constants/layout';
 
@@ -33,6 +34,7 @@ export default function Sidebar() {
 	const { user, logout } = useAuth(); // Global user state from context
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 	const [isCollapsed, setIsCollapsed] = useState(false);
+	const [isComposeOpen, setIsComposeOpen] = useState(false);
 
 	const handleLogout = async () => {
 		try {
@@ -73,6 +75,7 @@ export default function Sidebar() {
             {/* Compose Button */}
             <div className={`mb-6 flex ${isCollapsed ? 'justify-center px-0' : 'px-2'}`}>
                 <button
+                    onClick={() => setIsComposeOpen(true)}
                     className={`flex items-center bg-spring-green text-white hover:bg-spring-green/90 transition-all shadow-sm ${
                         isCollapsed 
                             ? 'h-12 w-12 rounded-xl justify-center p-0' 
@@ -206,6 +209,12 @@ export default function Sidebar() {
                     </div>
                 </div>
             )}
+
+            {/* Compose Email Modal */}
+            <ComposeModal 
+                isOpen={isComposeOpen} 
+                onClose={() => setIsComposeOpen(false)} 
+            />
         </div>
     );
 }

@@ -56,7 +56,7 @@ export default function ThreadItem({ thread, isSelected, onClick }) {
                     </div>
                 </div>
                 <div className={`text-sm text-charcoal-ink mb-1 truncate ${thread.unread ? 'font-semibold' : 'font-medium'}`}>
-                    {thread.subject}
+                    {thread.subject || "(No subject)"}
                 </div>
                 <div className="text-[13px] text-muted-steel line-clamp-2 leading-[1.4]">
                     {thread.snippet}
