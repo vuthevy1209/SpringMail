@@ -17,6 +17,7 @@ public class SendMailRequest {
     private String bcc;
     private String subject;
     private String body;
+    private Boolean isHtml;
     
     // Các fields dành cho tính năng Reply
     private String threadId;

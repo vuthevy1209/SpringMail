@@ -167,7 +167,14 @@ public class GoogleLibraryVersionGmailServiceImpl implements GmailService {
 			MimeMultipart multipart = new MimeMultipart();
 
 			MimeBodyPart textPart = new MimeBodyPart();
-			textPart.setText(request.getBody() != null ? request.getBody() : "");
+			String content = request.getBody() != null ? request.getBody() : "";
+			
+			if (Boolean.TRUE.equals(request.getIsHtml())) {
+				textPart.setContent(content, "text/html; charset=utf-8");
+			} else {
+				textPart.setText(content, "utf-8");
+			}
+			
 			multipart.addBodyPart(textPart);
 
 			if (request.getAttachments() != null && !request.getAttachments().isEmpty()) {

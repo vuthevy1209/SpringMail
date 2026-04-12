@@ -56,7 +56,7 @@ public class MailServiceImpl implements MailService {
 
 	private final AuthorizedClientServiceOAuth2AuthorizedClientManager backgroundAuthorizedClientManager;
 
-	private final MailThreadConverter mailThreadConverter;
+	private final MailThreadConverter mailThreadConverter; 
 
 	@Override
 	public Page<MailThreadResponse> getMailThreads(MailThreadsRequest request, int page, int size) throws IOException {

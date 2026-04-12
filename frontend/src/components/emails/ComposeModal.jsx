@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { X, Mic, Paperclip, Send, Maximize2, Minimize2, Trash2, CheckCircle2 } from 'lucide-react';
+import { X, Mic, Paperclip, Send, Maximize2, Minimize2, Trash2, CheckCircle2, Edit2, Eye } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import { marked } from 'marked';
 import mailService from '../../service/mailService';
 import toast from 'react-hot-toast';
 
@@ -12,6 +14,8 @@ export default function ComposeModal({ isOpen, onClose }) {
     const [body, setBody] = useState('');
     const [attachments, setAttachments] = useState([]);
     const [isMinimized, setIsMinimized] = useState(false);
+    const [isPreview, setIsPreview] = useState(false);
+    const [editorType, setEditorType] = useState('text'); // 'text', 'markdown' or 'html'
     const [isSending, setIsSending] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const fileInputRef = useRef(null);
@@ -21,12 +25,20 @@ export default function ComposeModal({ isOpen, onClose }) {
     const handleActualSend = async () => {
         setIsSending(true);
         
+        let finalBody = body;
+        let isHtml = editorType === 'html';
+        
+        if (editorType === 'markdown') {
+            finalBody = await marked.parse(body);
+            isHtml = true;
+        }
+        
         // Get actual valid files
         const validFiles = attachments.filter(a => a.status === 'success').map(a => a.file);
         const toastId = toast.loading("Sending your email...");
         
         try {
-            await mailService.sendEmail({ to, cc, bcc, subject, body, attachments: validFiles });
+            await mailService.sendEmail({ to, cc, bcc, subject, body: finalBody, isHtml, attachments: validFiles });
             toast.success("Email sent successfully!", { id: toastId });
         } catch (error) {
             console.error("Error sending email:", error);
@@ -94,9 +106,9 @@ export default function ComposeModal({ isOpen, onClose }) {
     }
 
     return (
-        <div className="fixed bottom-0 right-16 w-[640px] bg-pure-surface shadow-[0_-4px_24px_rgba(0,0,0,0.1)] rounded-t-xl border border-whisper flex flex-col z-50 overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-0 right-16 w-[640px] h-[85vh] max-h-[800px] bg-pure-surface shadow-[0_-4px_24px_rgba(0,0,0,0.1)] rounded-t-xl border border-whisper flex flex-col z-50 overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
             {/* Header */}
-            <div className="flex items-center justify-between bg-charcoal-ink text-white px-4 py-3 cursor-pointer"
+            <div className="flex items-center justify-between bg-charcoal-ink text-white px-4 py-3 cursor-pointer shrink-0"
                  onClick={() => setIsMinimized(true)}>
                 <span className="font-medium text-sm">New Message</span>
                 <div className="flex items-center gap-2">
@@ -112,7 +124,7 @@ export default function ComposeModal({ isOpen, onClose }) {
             </div>
 
             {/* Form Fields */}
-            <div className="flex flex-col px-4 py-2 border-b border-whisper text-[14px]">
+            <div className="flex flex-col px-4 py-2 border-b border-whisper text-[14px] shrink-0">
                 <div className="flex items-center border-b border-whisper/50 py-2">
                     <span className="text-muted-steel w-12 shrink-0">To</span>
                     <input 
@@ -153,7 +165,7 @@ export default function ComposeModal({ isOpen, onClose }) {
                         </div>
                     </>
                 )}
-                <div className="flex py-2">
+                <div className="flex py-2 items-center justify-between">
                     <input 
                         type="text" 
                         value={subject}
@@ -161,17 +173,83 @@ export default function ComposeModal({ isOpen, onClose }) {
                         className="flex-1 bg-transparent outline-none text-charcoal-ink font-semibold placeholder-muted-steel/70"
                         placeholder="Subject"
                     />
+                    <div className="flex items-center gap-2">
+                        <select
+                            value={editorType}
+                            onChange={(e) => {
+                                setEditorType(e.target.value);
+                                if (e.target.value === 'text') setIsPreview(false);
+                            }}
+                            className="bg-canvas-gray border border-whisper text-muted-steel hover:text-charcoal-ink text-xs font-medium rounded-md px-2 py-1 outline-none cursor-pointer transition-colors"
+                        >
+                            <option value="text">Text</option>
+                            <option value="markdown">Markdown</option>
+                            <option value="html">HTML</option>
+                        </select>
+                        {editorType !== 'text' && (
+                            <button
+                                onClick={() => setIsPreview(!isPreview)}
+                                className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-canvas-gray hover:bg-whisper text-muted-steel hover:text-charcoal-ink transition-colors border border-whisper"
+                            >
+                                {isPreview ? (
+                                    <>
+                                        <Edit2 size={14} />
+                                        <span>Edit</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Eye size={14} />
+                                        <span>Preview</span>
+                                    </>
+                                )}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* Body */}
-            <div className="flex-1 p-4 min-h-[400px]">
-                <textarea 
-                    className="w-full h-full resize-none outline-none text-charcoal-ink text-[14px] bg-transparent"
-                    placeholder="Write something..."
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                />
+            <div className="flex-1 p-4 min-h-[300px] overflow-y-auto custom-scrollbar">
+                {isPreview ? (
+                    <div className="w-full h-full p-2 text-charcoal-ink/90 text-[14px] leading-relaxed">
+                        {body ? (
+                            editorType === 'markdown' ? (
+                                <ReactMarkdown
+                                    components={{
+                                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2" {...props} />,
+                                        h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2" {...props} />,
+                                        h3: ({node, ...props}) => <h3 className="text-[15px] font-bold mt-2 mb-1" {...props} />,
+                                        p: ({node, ...props}) => <p className="mb-2" {...props} />,
+                                        ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+                                        ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
+                                        li: ({node, ...props}) => <li {...props} />,
+                                        strong: ({node, ...props}) => <strong className="font-bold text-charcoal-ink" {...props} />,
+                                        em: ({node, ...props}) => <em className="italic text-charcoal-ink/70" {...props} />,
+                                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-whisper pl-4 py-1 my-2 italic text-muted-steel bg-canvas-gray/30 rounded-r" {...props} />,
+                                        code: ({node, inline, ...props}) => 
+                                            inline 
+                                                ? <code className="bg-canvas-gray border border-whisper/60 px-1.5 py-0.5 rounded text-[13px] font-mono text-spring-green" {...props} />
+                                                : <pre className="bg-charcoal-ink text-whisper p-4 rounded-lg overflow-x-auto my-3 text-[13px] font-mono shadow-sm"><code {...props} /></pre>,
+                                        a: ({node, ...props}) => <a className="text-blue-500 hover:text-blue-600 hover:underline cursor-pointer" target="_blank" rel="noopener noreferrer" {...props} />,
+                                    }}
+                                >
+                                    {body}
+                                </ReactMarkdown>
+                            ) : (
+                                <div dangerouslySetInnerHTML={{ __html: body }} />
+                            )
+                        ) : (
+                            <span className="text-muted-steel italic">Nothing to preview</span>
+                        )}
+                    </div>
+                ) : (
+                    <textarea 
+                        className={`w-full h-full resize-none outline-none text-charcoal-ink text-[14px] bg-transparent ${editorType === 'text' ? '' : 'font-mono'}`}
+                        placeholder={editorType === 'markdown' ? "Write something using Markdown..." : editorType === 'html' ? "<html>\n  <body>\n    Write something using HTML...\n  </body>\n</html>" : "Write your message here..."}
+                        value={body}
+                        onChange={(e) => setBody(e.target.value)}
+                    />
+                )}
             </div>
 
             {/* Actions */}
@@ -203,7 +281,7 @@ export default function ComposeModal({ isOpen, onClose }) {
                     ))}
                 </div>
             )}
-            <div className="flex items-center justify-between px-4 py-3 border-t border-whisper bg-canvas-gray/50">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-whisper bg-canvas-gray/50 shrink-0">
                 <button 
                     onClick={handleSendClick}
                     disabled={isSending || !to || attachments.some(a => a.status === 'uploading')}
@@ -228,9 +306,6 @@ export default function ComposeModal({ isOpen, onClose }) {
                     />
                     <button type="button" className="p-2 hover:bg-black/5 rounded transition-colors" title="Attach files" onClick={(e) => { e.preventDefault(); fileInputRef.current?.click(); }}>
                         <Paperclip size={18} />
-                    </button>
-                    <button type="button" className="p-2 hover:bg-black/5 rounded transition-colors text-primary-blue hover:text-primary-blue" title="Smart dictate" onClick={(e) => e.preventDefault()}>
-                        <Mic size={18} />
                     </button>
                     <button type="button" className="p-2 hover:bg-black/5 rounded transition-colors ml-2" onClick={(e) => { e.preventDefault(); onClose(); }} title="Discard draft">
                         <Trash2 size={18} />
