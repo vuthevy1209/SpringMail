@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Inbox, Send, FileText, Trash2, Settings, LogOut, X, ChevronLeft, ChevronRight, Star, Bookmark, AlertOctagon } from 'lucide-react';
+import { Inbox, Send, FileText, Trash2, Settings, LogOut, X, ChevronLeft, ChevronRight, Star, Bookmark, AlertOctagon, PenSquare, Edit } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SpringIcon from '../../assets/spring-icon.svg';
 
@@ -68,6 +68,20 @@ export default function Sidebar() {
                         SpringMail
                     </span>
                 )}
+            </div>
+
+            {/* Compose Button */}
+            <div className={`mb-6 flex ${isCollapsed ? 'justify-center px-0' : 'px-2'}`}>
+                <button
+                    className={`flex items-center bg-spring-green text-white hover:bg-spring-green/90 transition-all shadow-sm ${
+                        isCollapsed 
+                            ? 'h-12 w-12 rounded-xl justify-center p-0' 
+                            : 'h-12 w-full rounded-2xl justify-center gap-3 px-4'
+                    }`}
+                >
+                    <Edit size={18} className="shrink-0" />
+                    {!isCollapsed && <span className="font-semibold text-[15px]">Compose</span>}
+                </button>
             </div>
 
             {/* Folders */}

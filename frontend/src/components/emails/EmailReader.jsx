@@ -14,9 +14,8 @@ import {
     Forward,
     X,
     Inbox,
-    FileEdit,
-    Send,
-    AlertOctagon,
+    Star,
+    Bookmark,
     RefreshCw,
     Wand2,
 } from "lucide-react";
@@ -25,7 +24,7 @@ import EmailBody from "./EmailBody";
 import EmailReaderSkeleton from "./EmailReaderSkeleton";
 import { LAYOUT } from "../../constants/layout";
 
-export default function EmailReader({ selectedThread, isLoading, onThreadUpdated, onThreadDeleted }) {
+export default function EmailReader({ folder, selectedThread, isLoading, onThreadUpdated, onThreadDeleted }) {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [actionToConfirm, setActionToConfirm] = useState(null);
     const [summary, setSummary] = useState(null);
@@ -69,7 +68,11 @@ export default function EmailReader({ selectedThread, isLoading, onThreadUpdated
                 updatedData = await mailService.modifyThread(thread.id, [], ["INBOX"]);
                 shouldDelete = true; // In Inbox view, archive means hide from Inbox
             } else if (actionToConfirm === 'Report spam') {
-                updatedData = await mailService.modifyThread(thread.id, ["SPAM"], ["INBOX"]);
+                let removeLabels = new Set(["INBOX"]);
+                if (folder) removeLabels.add(folder.toUpperCase());
+                removeLabels.delete("SPAM"); // Đảm bảo không vừa thêm vừa xóa
+                
+                updatedData = await mailService.modifyThread(thread.id, ["SPAM"], Array.from(removeLabels));
                 shouldDelete = true;
             } else if (actionToConfirm === 'Delete') {
                 await mailService.trashThread(thread.id);
@@ -81,7 +84,12 @@ export default function EmailReader({ selectedThread, isLoading, onThreadUpdated
             } else if (actionToConfirm.startsWith('Move to')) {
                 const folderName = actionToConfirm.replace('Move to ', '');
                 const targetLabelId = folderName.toUpperCase();
-                updatedData = await mailService.modifyThread(thread.id, [targetLabelId], ["INBOX"]);
+                
+                let removeLabels = new Set(["INBOX"]);
+                if (folder) removeLabels.add(folder.toUpperCase());
+                removeLabels.delete(targetLabelId); // Đảm bảo không vừa thêm vừa xóa
+                
+                updatedData = await mailService.modifyThread(thread.id, [targetLabelId], Array.from(removeLabels));
                 shouldDelete = true;
             }
 
@@ -208,23 +216,23 @@ Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực 
                             <div className="absolute right-0 mt-2 w-36 bg-pure-surface border border-whisper rounded-xl shadow-xl z-20 py-2 animate-in fade-in zoom-in-95 duration-100 origin-top-right ring-1 ring-black/5">
                                 {[
                                     { name: 'Inbox', icon: Inbox },
-                                    { name: 'Drafts', icon: FileEdit },
-                                    { name: 'Sent', icon: Send },
-                                    { name: 'Spam', icon: AlertOctagon },
-                                    { name: 'Trash', icon: Trash2 }
-                                ].map((folder) => {
-                                    const Icon = folder.icon;
+                                    { name: 'Starred', icon: Star },
+                                    { name: 'Important', icon: Bookmark }
+                                ]
+                                .filter(f => f.name.toLowerCase() !== folder?.toLowerCase())
+                                .map((f) => {
+                                    const Icon = f.icon;
                                     return (
                                         <button
-                                            key={folder.name}
+                                            key={f.name}
                                             onClick={() => {
-                                                handleActionClick(`Move to ${folder.name}`);
+                                                handleActionClick(`Move to ${f.name}`);
                                                 setIsMoveToDropdownOpen(false);
                                             }}
                                             className="w-full flex items-center gap-3 px-4 py-2.5 text-[14px] font-medium text-charcoal-ink hover:bg-canvas-gray transition-colors group"
                                         >
                                             <Icon size={16} className="text-muted-steel group-hover:text-primary-blue transition-colors" />
-                                            <span className="group-hover:text-charcoal-ink">{folder.name}</span>
+                                            <span className="group-hover:text-charcoal-ink">{f.name}</span>
                                         </button>
                                     );
                                 })}
