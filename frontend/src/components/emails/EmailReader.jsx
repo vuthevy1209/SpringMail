@@ -290,25 +290,38 @@ Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực 
                                     className="bg-pure-surface rounded-xl p-6 border border-whisper shadow-sm"
                                 >
                                     {/* Sender Info */}
-                                    <div className="flex justify-between items-center mb-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 shrink-0">
+                                    <div className="flex justify-between items-start mb-6 pt-2">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-10 h-10 shrink-0 mt-0.5">
                                                 <img
                                                     src={`https://ui-avatars.com/api/?name=${encodeURIComponent(email.fromName || "Unknown")}&background=random&color=fff&rounded=true&bold=true`}
                                                     alt={email.fromName}
                                                     className="w-full h-full rounded-full"
                                                 />
                                             </div>
-                                            <div>
-                                                <div className="font-semibold text-charcoal-ink">
-                                                    {email.fromName || "(Unknown)"}
+                                            <div className="flex flex-col">
+                                                <div className="flex items-baseline gap-1.5">
+                                                    <span className="font-semibold text-charcoal-ink">
+                                                        {email.fromName || "(Unknown)"}
+                                                    </span>
+                                                    <span className="text-[12px] text-muted-steel">
+                                                        {email.fromEmail ? `<${email.fromEmail}>` : ""}
+                                                    </span>
                                                 </div>
-                                                <div className="text-[13px] text-muted-steel">
-                                                    {email.fromEmail ? `<${email.fromEmail}>` : ""}
+                                                <div className="text-[12px] text-muted-steel mt-0.5 flex items-center gap-1">
+                                                    <span>to</span>
+                                                    <span className="text-charcoal-ink/80">
+                                                        {!email.toName && !email.toEmail 
+                                                            ? "me" 
+                                                            : (email.toName && email.toName !== email.toEmail)
+                                                                ? `${email.toName} <${email.toEmail}>`
+                                                                : (email.toEmail || email.toName)
+                                                        }
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="text-muted-steel text-sm">
+                                        <div className="text-muted-steel text-sm mt-0.5">
                                             {email.internalDate
                                                 ? new Date(email.internalDate).toLocaleString()
                                                 : ""}

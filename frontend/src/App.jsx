@@ -21,6 +21,7 @@ export default function App() {
 					{/* App Routes (with layout) */}
 					<Route element={<MainLayout />}>
 						<Route path="/inbox"      element={<MailboxPage folder="inbox"     />} />
+						<Route path="/all"        element={<MailboxPage folder="all"       />} />
 						<Route path="/starred"    element={<MailboxPage folder="starred"   />} />
 						<Route path="/important"  element={<MailboxPage folder="important" />} />
 						<Route path="/sent"       element={<MailboxPage folder="sent"      />} />

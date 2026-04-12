@@ -36,6 +36,7 @@ export default function MailboxPage({ folder }) {
 
 
     const getLabelIds = () => {
+        if (folder === 'all') return [];
         if (folder === 'sent') return ['SENT'];
         if (folder === 'drafts') return ['DRAFT'];
         if (folder === 'trash') return ['TRASH'];

@@ -19,6 +19,7 @@ export default function InboxList({
 }) {
     const folderTitle = {
         inbox:     'Inbox',
+        all:       'All Mail',
         starred:   'Starred',
         important: 'Important',
         sent:      'Sent',
