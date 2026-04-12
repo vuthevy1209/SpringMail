@@ -1,5 +1,7 @@
 package com.vuthevy1209.springmail.service.gmail.library;
 
+import com.google.api.client.http.InputStreamContent;
+import java.io.ByteArrayInputStream;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.*;
 import com.google.api.services.gmail.model.Thread;
@@ -12,6 +14,19 @@ import com.vuthevy1209.springmail.service.gmail.dto.history.GmailListHistoryResp
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.ModifyThreadRequestDto;
+import com.vuthevy1209.springmail.dto.mail.request.SendMailRequest;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.activation.DataHandler;
+import jakarta.mail.util.ByteArrayDataSource;
+import org.springframework.web.multipart.MultipartFile;
+import jakarta.mail.Message;
+import java.io.ByteArrayOutputStream;
+import java.util.Properties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
@@ -128,6 +143,66 @@ public class GoogleLibraryVersionGmailServiceImpl implements GmailService {
 		Thread thread = service.users().threads().modify("me", threadId, modifyRequest).execute();
 
 		return GmailMapper.toGmailThreadDto(thread);
+	}
+
+	@Override
+	public void sendMail(String accessToken, SendMailRequest request) throws IOException {
+		Gmail service = gmailServiceFactory.build(accessToken);
+		try {
+			Properties props = new Properties();
+			Session session = Session.getDefaultInstance(props, null);
+			MimeMessage email = new MimeMessage(session);
+
+			email.setFrom(new InternetAddress("me"));
+			email.addRecipient(Message.RecipientType.TO, new InternetAddress(request.getTo()));
+			if (request.getCc() != null && !request.getCc().trim().isEmpty()) {
+				email.addRecipients(Message.RecipientType.CC, InternetAddress.parse(request.getCc()));
+			}
+			if (request.getBcc() != null && !request.getBcc().trim().isEmpty()) {
+				email.addRecipients(Message.RecipientType.BCC, InternetAddress.parse(request.getBcc()));
+			}
+
+			email.setSubject(request.getSubject() != null ? request.getSubject() : "");
+
+			MimeMultipart multipart = new MimeMultipart();
+
+			MimeBodyPart textPart = new MimeBodyPart();
+			textPart.setText(request.getBody() != null ? request.getBody() : "");
+			multipart.addBodyPart(textPart);
+
+			if (request.getAttachments() != null && !request.getAttachments().isEmpty()) {
+				for (MultipartFile file : request.getAttachments()) {
+					if (file.isEmpty()) continue;
+					MimeBodyPart attachmentPart = new MimeBodyPart();
+					ByteArrayDataSource dataSource = new ByteArrayDataSource(file.getInputStream(), file.getContentType());
+					attachmentPart.setDataHandler(new DataHandler(dataSource));
+					attachmentPart.setFileName(file.getOriginalFilename());
+					multipart.addBodyPart(attachmentPart);
+				}
+			}
+
+			email.setContent(multipart);
+
+			// For reply thread handling
+			com.google.api.services.gmail.model.Message message = new com.google.api.services.gmail.model.Message();
+			if (request.getThreadId() != null && !request.getThreadId().trim().isEmpty()) {
+				message.setThreadId(request.getThreadId());
+				if (request.getInReplyTo() != null && !request.getInReplyTo().isEmpty()) {
+					email.setHeader("In-Reply-To", request.getInReplyTo());
+					email.setHeader("References", request.getInReplyTo());
+				}
+			}
+
+			ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+			email.writeTo(buffer);
+			byte[] rawMessageBytes = buffer.toByteArray();
+			
+			InputStreamContent mediaContent = new InputStreamContent("message/rfc822", new ByteArrayInputStream(rawMessageBytes));
+
+			service.users().messages().send("me", message, mediaContent).execute();
+		} catch (MessagingException e) {
+			throw new IOException("Error creating email message", e);
+		}
 	}
 
 	@Override

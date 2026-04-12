@@ -6,6 +6,7 @@ import com.vuthevy1209.springmail.service.gmail.dto.history.GmailListHistoryResp
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.ModifyThreadRequestDto;
+import com.vuthevy1209.springmail.dto.mail.request.SendMailRequest;
 
 import java.util.List;
 import java.io.IOException;
@@ -18,5 +19,6 @@ public interface GmailService {
     GmailListHistoryResponseDto listHistory(String accessToken, String startHistoryId, Long maxResults, String pageToken) throws IOException;
     List<GmailThreadDto> getThreadsBatch(String accessToken, List<String> threadIds) throws IOException;
 	GmailThreadDto modifyThread(String accessToken, String threadId, ModifyThreadRequestDto request) throws IOException;
+	void sendMail(String accessToken, SendMailRequest request) throws IOException;
 	GmailThreadDto trashThread(String accessToken, String threadId) throws IOException;
 }

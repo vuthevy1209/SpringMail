@@ -37,6 +37,31 @@ class MailService {
         const response = await api.delete(`/mail/threads/${threadId}/trash`);
         return response.data;
     }
+
+    async sendEmail(payload: { to: string, cc?: string, bcc?: string, subject: string, body: string, threadId?: string, inReplyTo?: string, attachments?: File[] }, onUploadProgress?: (progressEvent: any) => void) {
+        const formData = new FormData();
+        formData.append('to', payload.to);
+        if (payload.cc) formData.append('cc', payload.cc);
+        if (payload.bcc) formData.append('bcc', payload.bcc);
+        formData.append('subject', payload.subject);
+        formData.append('body', payload.body);
+        if (payload.threadId) formData.append('threadId', payload.threadId);
+        if (payload.inReplyTo) formData.append('inReplyTo', payload.inReplyTo);
+        
+        if (payload.attachments) {
+            payload.attachments.forEach(file => {
+                formData.append('attachments', file);
+            });
+        }
+
+        const response = await api.post('/mail/send', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            },
+            onUploadProgress
+        });
+        return response.data;
+    }
 }
 
 export default new MailService();

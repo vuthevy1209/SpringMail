@@ -12,6 +12,7 @@ import com.vuthevy1209.springmail.service.gmail.dto.profile.GmailProfileDto;
 import com.vuthevy1209.springmail.service.gmail.dto.history.GmailListHistoryResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
+import com.vuthevy1209.springmail.dto.mail.request.SendMailRequest;
 import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +64,11 @@ public class FeignVersionGmailServiceImpl implements GmailService {
 	public GmailThreadDto trashThread(String accessToken, String threadId) throws IOException {
 			Thread thread = gmailFeignClient.trashThread("Bearer " + accessToken, threadId);
 			return GmailMapper.toGmailThreadDto(thread);
+	}
+
+	@Override
+	public void sendMail(String accessToken, SendMailRequest request) throws IOException {
+		throw new UnsupportedOperationException("Sending mail not supported in Feign version currently");
 	}
 
 	@Override

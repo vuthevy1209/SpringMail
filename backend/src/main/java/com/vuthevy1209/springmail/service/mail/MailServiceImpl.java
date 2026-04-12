@@ -2,6 +2,7 @@ package com.vuthevy1209.springmail.service.mail;
 
 import com.vuthevy1209.springmail.dto.mail.request.AttachmentRequest;
 import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
+import com.vuthevy1209.springmail.dto.mail.request.SendMailRequest;
 import com.vuthevy1209.springmail.dto.mail.request.ThreadActionRequest;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
 import com.vuthevy1209.springmail.repository.MailMessageRepository;
@@ -177,6 +178,15 @@ public class MailServiceImpl implements MailService {
 			}
 
 			return getThreadDetail(threadId);
+	}
+
+	@Override
+	public void sendMail(SendMailRequest request) throws IOException {
+		String accessToken = SecurityUtils.getAccessToken("google");
+		if (accessToken == null) {
+			throw new IOException("Failed to authorize OAuth2 client or get access token");
+		}
+		gmailService.sendMail(accessToken, request);
 	}
 
 	@Override

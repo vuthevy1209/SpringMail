@@ -2,6 +2,7 @@ package com.vuthevy1209.springmail.service.mail;
 
 import com.vuthevy1209.springmail.dto.mail.request.AttachmentRequest;
 import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
+import com.vuthevy1209.springmail.dto.mail.request.SendMailRequest;
 import com.vuthevy1209.springmail.dto.mail.request.ThreadActionRequest;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,8 @@ public interface MailService {
 	MailThreadResponse getThreadDetail(String threadId) throws IOException;
 
 	MailThreadResponse modifyThread(String threadId, ThreadActionRequest request) throws IOException;
+
+	void sendMail(SendMailRequest request) throws IOException;
 
 	void trashThread(String threadId) throws IOException;
 

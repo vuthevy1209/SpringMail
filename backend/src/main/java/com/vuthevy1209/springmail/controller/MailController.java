@@ -4,6 +4,7 @@ import com.vuthevy1209.springmail.dto.ApiResponse;
 import com.vuthevy1209.springmail.dto.mail.request.AttachmentRequest;
 import com.vuthevy1209.springmail.dto.mail.request.FetchOlderRequest;
 import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
+import com.vuthevy1209.springmail.dto.mail.request.SendMailRequest;
 import com.vuthevy1209.springmail.dto.mail.request.ThreadActionRequest;
 import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
@@ -13,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -76,6 +78,12 @@ public class MailController {
 		return ApiResponse.<MailThreadResponse>builder()
 				.result(mailService.modifyThread(id, request))
 				.build();
+	}
+
+	@PostMapping(value = "/send", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ApiResponse<Void> sendMail(@ModelAttribute SendMailRequest request) throws IOException {
+		mailService.sendMail(request);
+		return ApiResponse.<Void>builder().build();
 	}
 
 	@DeleteMapping("/threads/{id}/trash")
