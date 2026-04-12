@@ -1,4 +1,3 @@
-// java
 package com.vuthevy1209.springmail.configuration;
 
 import org.springframework.context.annotation.Bean;
@@ -7,23 +6,20 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.oauth2.client.*;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.web.AuthenticatedPrincipalOAuth2AuthorizedClientRepository;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProvider;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder;
 
 @Configuration
 @EnableWebSecurity
@@ -80,31 +76,50 @@ public class SecurityConfig {
         authorizationRequestResolver.setAuthorizationRequestCustomizer(
                 customizer -> customizer.additionalParameters(params -> {
                     params.put("access_type", "offline");
-                    params.put("prompt", "select_account consent");
+                    params.put("prompt", "select_account");
                 })
         );
 
         return authorizationRequestResolver;
     }
 
+    // 1. Manager cho Web Context (Mặc định)
     @Bean
     public OAuth2AuthorizedClientManager authorizedClientManager(
             ClientRegistrationRepository clientRegistrationRepository,
             OAuth2AuthorizedClientRepository authorizedClientRepository) {
 
-        // Định nghĩa các cơ chế ủy quyền được hỗ trợ
         OAuth2AuthorizedClientProvider authorizedClientProvider =
                 OAuth2AuthorizedClientProviderBuilder.builder()
-                        .authorizationCode() // Hỗ trợ luồng đăng nhập bằng mã xác thực (lấy Token lần đầu)
-                        .refreshToken()      // Hỗ trợ tự động làm mới Access Token bằng Refresh Token
+                        .authorizationCode()
+                        .refreshToken()
+                        .clientCredentials()
                         .build();
 
-        // Khởi tạo manager mặc định kết nối với Repository lưu trữ Token (thường là Session)
         DefaultOAuth2AuthorizedClientManager authorizedClientManager =
                 new DefaultOAuth2AuthorizedClientManager(
                         clientRegistrationRepository, authorizedClientRepository);
 
-        // Gắn bộ cung cấp logic xử lý Token vào manager
+        authorizedClientManager.setAuthorizedClientProvider(authorizedClientProvider);
+
+        return authorizedClientManager;
+    }
+
+    // 2. Manager cho Background Context (Webhooks, Async)
+    @Bean
+    public AuthorizedClientServiceOAuth2AuthorizedClientManager backgroundAuthorizedClientManager(
+            ClientRegistrationRepository clientRegistrationRepository,
+            OAuth2AuthorizedClientService authorizedClientService) {
+        
+        OAuth2AuthorizedClientProvider authorizedClientProvider =
+                OAuth2AuthorizedClientProviderBuilder.builder()
+                        .refreshToken()
+                        .build();
+
+        AuthorizedClientServiceOAuth2AuthorizedClientManager authorizedClientManager =
+                new AuthorizedClientServiceOAuth2AuthorizedClientManager(
+                        clientRegistrationRepository, authorizedClientService);
+
         authorizedClientManager.setAuthorizedClientProvider(authorizedClientProvider);
 
         return authorizedClientManager;

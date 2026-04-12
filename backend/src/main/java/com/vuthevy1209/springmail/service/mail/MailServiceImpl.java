@@ -23,6 +23,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.*;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -32,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -48,6 +53,8 @@ public class MailServiceImpl implements MailService {
 
 	private final MailSyncService mailSyncService;
 
+
+	private final AuthorizedClientServiceOAuth2AuthorizedClientManager backgroundAuthorizedClientManager;
 
 	private final MailThreadConverter mailThreadConverter;
 
@@ -132,8 +139,16 @@ public class MailServiceImpl implements MailService {
 			return;
 		}
 
-		// OAuth2AuthorizedClientService lưu principalName dưới dạng EMAIL (được setup trong CustomOidcUserService)
-		OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient("google", user.getEmail());
+		// Tạo một proxy Authentication dựa trên email (cùng định dạng principal đã lưu)
+		Authentication principal =
+			new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
+
+		OAuth2AuthorizeRequest authorizeRequest =
+			OAuth2AuthorizeRequest.withClientRegistrationId("google")
+				.principal(principal)
+				.build();
+
+		OAuth2AuthorizedClient client = backgroundAuthorizedClientManager.authorize(authorizeRequest);
 		if (client == null || client.getAccessToken() == null) {
 			log.warn("OAuth2AuthorizedClient not found or missing access token for user {}", email);
 			return;
