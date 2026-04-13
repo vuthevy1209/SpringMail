@@ -5,7 +5,7 @@ import { marked } from 'marked';
 import mailService from '../../service/mailService';
 import toast from 'react-hot-toast';
 
-export default function ReplyBox({ thread, onDiscard, onSent }) {
+export default function ReplyBox({ thread, message, type = 'reply', onDiscard, onSent }) {
     const [to, setTo] = useState('');
     const [cc, setCc] = useState('');
     const [bcc, setBcc] = useState('');
@@ -20,17 +20,52 @@ export default function ReplyBox({ thread, onDiscard, onSent }) {
 
     useEffect(() => {
         if (thread && thread.messages && thread.messages.length > 0) {
-            // Find the last message to get whom to reply to
-            const lastMsg = thread.messages[thread.messages.length - 1];
-            setTo(lastMsg.fromEmail || '');
+            const defaultMsg = thread.messages[thread.messages.length - 1];
+            const targetMsg = message || defaultMsg;
             
-            let subj = thread.subject || '';
-            if (!subj.toLowerCase().startsWith('re:')) {
-                subj = `Re: ${subj}`;
+            if (type === 'reply') {
+                setTo(targetMsg.fromEmail || '');
+                let subj = thread.subject || '';
+                if (!subj.toLowerCase().startsWith('re:')) {
+                    subj = `Re: ${subj}`;
+                }
+                setSubject(subj);
+                setBody(''); // start with empty body or quote
+            } else if (type === 'forward') {
+                setTo(''); // Need to enter recipient
+                let subj = thread.subject || '';
+                if (!subj.toLowerCase().startsWith('fwd:')) {
+                    subj = `Fwd: ${subj}`;
+                }
+                setSubject(subj);
+                
+                // Add forwarded message content to body
+                const forwardHeader = `\n\n---------- Forwarded message ---------\nFrom: <${targetMsg.fromEmail || ''}>\nDate: ${new Date(targetMsg.internalDate).toLocaleString()}\nSubject: ${thread.subject}\n\n`;
+                
+                let emailContent = '';
+                if (targetMsg.bodyHtml) {
+                    let htmlStr = targetMsg.bodyHtml;
+                    htmlStr = htmlStr.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+                    htmlStr = htmlStr.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+                    htmlStr = htmlStr.replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '');
+                    htmlStr = htmlStr.replace(/<br\s*\/?>/gi, '\n');
+                    htmlStr = htmlStr.replace(/<\/(p|div|h[1-6]|ul|ol|table|blockquote|pre)>/gi, '\n\n');
+                    htmlStr = htmlStr.replace(/<\/(li|tr)>/gi, '\n');
+                    htmlStr = htmlStr.replace(/<li[^>]*>/gi, '\n  • ');
+                    
+                    const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
+                    emailContent = doc.documentElement.textContent || '';
+                    emailContent = emailContent.replace(/\n\s*\n\s*\n+/g, '\n\n');
+                } else if (targetMsg.bodyText) {
+                    emailContent = targetMsg.bodyText;
+                } else {
+                    emailContent = targetMsg.snippet || '';
+                }
+
+                setBody(forwardHeader + emailContent.trim());
             }
-            setSubject(subj);
         }
-    }, [thread]);
+    }, [thread, message, type]);
 
     const handleActualSend = async () => {
         setIsSending(true);
@@ -45,10 +80,12 @@ export default function ReplyBox({ thread, onDiscard, onSent }) {
         }
         
         const validFiles = attachments.filter(a => a.status === 'success').map(a => a.file);
-        const toastId = toast.loading("Sending your reply...");
+        const toastId = toast.loading(`Sending your ${type}...`);
         
         try {
-            const lastMsg = thread.messages && thread.messages.length > 0 ? thread.messages[thread.messages.length - 1] : null;
+            const defaultMsg = thread.messages && thread.messages.length > 0 ? thread.messages[thread.messages.length - 1] : null;
+            const targetMsg = message || defaultMsg;
+            
             await mailService.sendEmail({ 
                 to, 
                 cc, 
@@ -58,13 +95,13 @@ export default function ReplyBox({ thread, onDiscard, onSent }) {
                 isHtml, 
                 attachments: validFiles,
                 threadId: thread.id,
-                inReplyTo: lastMsg ? lastMsg.messageIdHeader : undefined
+                inReplyTo: type === 'reply' && targetMsg ? targetMsg.messageIdHeader : undefined
             });
-            toast.success("Reply sent successfully!", { id: toastId });
+            toast.success(`${type === 'forward' ? 'Forwarded' : 'Reply sent'} successfully!`, { id: toastId });
             if (onSent) onSent();
         } catch (error) {
-            console.error("Error sending reply:", error);
-            toast.error("Failed to send reply. Please try again.", { id: toastId });
+            console.error(`Error sending ${type}:`, error);
+            toast.error(`Failed to send ${type}. Please try again.`, { id: toastId });
         } finally {
             setIsSending(false);
         }
@@ -97,7 +134,7 @@ export default function ReplyBox({ thread, onDiscard, onSent }) {
     };
 
     return (
-        <div className="mt-8 mb-8 bg-pure-surface border border-whisper shadow-sm rounded-xl overflow-hidden flex flex-col">
+        <div className="bg-pure-surface border border-whisper shadow-sm rounded-xl overflow-hidden flex flex-col">
             {/* Form Fields Header */}
             <div className="flex flex-col px-4 py-2 border-b border-whisper text-[14px]">
                 <div className="flex items-center border-b border-whisper/50 py-2">
@@ -266,8 +303,7 @@ export default function ReplyBox({ thread, onDiscard, onSent }) {
                     disabled={isSending || !to || attachments.some(a => a.status === 'uploading')}
                     className="flex items-center gap-2 bg-spring-green hover:bg-spring-green/90 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <Send size={16} />
-                    <span>Send</span>
+                    <span>{isSending ? 'Sending...' : 'Send'}</span>
                 </button>
                 
                 <div className="flex items-center gap-2 text-muted-steel">

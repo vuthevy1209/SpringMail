@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import {
     Sparkles,
@@ -32,13 +32,23 @@ export default function EmailReader({ folder, selectedThread, isLoading, onThrea
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [isMoveToDropdownOpen, setIsMoveToDropdownOpen] = useState(false);
     const [isReplying, setIsReplying] = useState(false);
+    const [replyType, setReplyType] = useState('reply'); // 'reply' or 'forward'
+    const [targetMessage, setTargetMessage] = useState(null); // The specific message to reply/forward
+    
+    const messagesEndRef = useRef(null);
 
     useEffect(() => {
         setSummary(null);
         setIsSummarizing(false);
         setIsReplying(false);
+        setTargetMessage(null);
 
         if (selectedThread) {
+            // Scroll to the latest message
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 100);
+
             // Mark as read when thread is selected
             const hasUnread = selectedThread.messages?.some(msg => msg.labelIds?.includes("UNREAD"));
             if (hasUnread) {
@@ -284,10 +294,10 @@ Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực 
                     <div className="space-y-6">
                         {thread.messages &&
                             thread.messages.map((email) => (
-                                <div
-                                    key={email.id}
-                                    className="bg-pure-surface rounded-xl p-6 border border-whisper shadow-sm"
-                                >
+                                <React.Fragment key={email.id}>
+                                    <div
+                                        className="bg-pure-surface rounded-xl p-6 border border-whisper shadow-sm group"
+                                    >
                                     {/* Sender Info */}
                                     <div className="flex justify-between items-start mb-6 pt-2">
                                         <div className="flex items-start gap-3">
@@ -320,10 +330,36 @@ Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực 
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="text-muted-steel text-sm mt-0.5">
-                                            {email.internalDate
-                                                ? new Date(email.internalDate).toLocaleString()
-                                                : ""}
+                                        <div className="flex flex-col items-end gap-2">
+                                            <div className="text-muted-steel text-sm mt-0.5">
+                                                {email.internalDate
+                                                    ? new Date(email.internalDate).toLocaleString()
+                                                    : ""}
+                                            </div>
+                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                    className="p-1.5 hover:bg-canvas-gray rounded-md text-muted-steel hover:text-charcoal-ink transition-colors"
+                                                    title="Reply"
+                                                    onClick={() => {
+                                                        setTargetMessage(email);
+                                                        setReplyType('reply');
+                                                        setIsReplying(true);
+                                                    }}
+                                                >
+                                                    <Reply size={15} />
+                                                </button>
+                                                <button 
+                                                    className="p-1.5 hover:bg-canvas-gray rounded-md text-muted-steel hover:text-charcoal-ink transition-colors"
+                                                    title="Forward"
+                                                    onClick={() => {
+                                                        setTargetMessage(email);
+                                                        setReplyType('forward');
+                                                        setIsReplying(true);
+                                                    }}
+                                                >
+                                                    <Forward size={15} />
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -331,6 +367,7 @@ Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực 
                                     <div className="text-charcoal-ink text-[15px] leading-relaxed break-words">
                                         <EmailBody
                                             content={email.bodyHtml || email.bodyText}
+                                            isHtml={!!email.bodyHtml}
                                             messageId={email.id}
                                             attachments={email.attachments}
                                         />
@@ -378,27 +415,53 @@ Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực 
                                                 </div>
                                             </div>
                                         )}
-                                </div>
+                                    </div>
+
+                                    {/* ReplyBox under the specific message */}
+                                    {isReplying && targetMessage?.id === email.id && (
+                                        <div className="mt-2 mb-6">
+                                            <ReplyBox 
+                                                thread={thread}
+                                                message={targetMessage}
+                                                type={replyType}
+                                                onDiscard={() => {
+                                                    setIsReplying(false);
+                                                    setTargetMessage(null);
+                                                }}
+                                                onSent={() => {
+                                                    setIsReplying(false);
+                                                    setTargetMessage(null);
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                </React.Fragment>
                             ))}
+                        <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Reply / Forward Actions or Composer */}
-                    {isReplying ? (
-                        <ReplyBox 
-                            thread={thread}
-                            onDiscard={() => setIsReplying(false)}
-                            onSent={() => setIsReplying(false)}
-                        />
-                    ) : (
+                    {/* Reply / Forward Actions at the bottom */}
+                    {!isReplying && (
                         <div className="mt-8 flex gap-3 pb-8">
                             <button 
-                                onClick={() => setIsReplying(true)}
+                                onClick={() => { 
+                                    setIsReplying(true); 
+                                    setReplyType('reply'); 
+                                    setTargetMessage(thread.messages[thread.messages.length - 1]); 
+                                }}
                                 className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-6 py-2.5 rounded-full bg-pure-surface font-medium hover:bg-canvas-gray transition-colors shadow-sm"
                             >
                                 <Reply size={18} className="text-muted-steel" />
                                 Reply
                             </button>
-                            <button className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-6 py-2.5 rounded-full bg-pure-surface font-medium hover:bg-canvas-gray transition-colors shadow-sm">
+                            <button 
+                                onClick={() => { 
+                                    setIsReplying(true); 
+                                    setReplyType('forward'); 
+                                    setTargetMessage(thread.messages[thread.messages.length - 1]); 
+                                }}
+                                className="flex items-center gap-2 border border-whisper/50 text-charcoal-ink px-6 py-2.5 rounded-full bg-pure-surface font-medium hover:bg-canvas-gray transition-colors shadow-sm"
+                            >
                                 <Forward size={18} className="text-muted-steel" />
                                 Forward
                             </button>

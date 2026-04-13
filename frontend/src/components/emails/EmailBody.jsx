@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
  * Isolated component to render email HTML content within an iframe.
  * Prevents style leakage and provides a sandbox for the content.
  */
-export default function EmailBody({ content, messageId, attachments = [] }) {
+export default function EmailBody({ content, isHtml = true, messageId, attachments = [] }) {
     const iframeRef = useRef(null);
     const [height, setHeight] = useState('60px'); // Set a small initial height
     const [zoomedImage, setZoomedImage] = useState(null);
@@ -62,6 +62,20 @@ export default function EmailBody({ content, messageId, attachments = [] }) {
                 return match;
             });
         }
+        
+        // Format text if it's not HTML (e.g. plain bodyText)
+        if (!isHtml) {
+            // Escape HTML characters to avoid unintended rendering
+            newContent = newContent
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+            
+            // Convert line breaks to <br> and preserve consecutive spaces
+            newContent = newContent.replace(/\n/g, '<br />');
+        }
 
         // Inject CSS để tránh ảnh quá to làm vỡ layout
         const styleTag = `
@@ -108,7 +122,7 @@ export default function EmailBody({ content, messageId, attachments = [] }) {
                 </body>
             </html>
         `;
-    }, [content, messageId, attachments]);
+    }, [content, messageId, attachments, isHtml]);
 
     useEffect(() => {
         const iframe = iframeRef.current;
