@@ -15,7 +15,8 @@ createRoot(document.getElementById('root')).render(
           style: {
             fontSize: '16px',
             padding: '16px 24px',
-            maxWidth: '500px'
+            maxWidth: '500px',
+            wordBreak: 'break-word'
           }
         }} 
       />

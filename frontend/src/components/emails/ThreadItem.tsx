@@ -1,6 +1,13 @@
 import React from 'react';
+import { Thread } from '../../types/mail';
 
-export default function ThreadItem({ thread, isSelected, onClick }) {
+interface ThreadItemProps {
+    thread: any; // Using any or an extended Thread type depending on if senderNames is added
+    isSelected: boolean;
+    onClick: () => void;
+}
+
+export default function ThreadItem({ thread, isSelected, onClick }: ThreadItemProps) {
     // Use the first sender from the senderNames list
     const senderName = (thread.senderNames && thread.senderNames.length > 0) 
         ? thread.senderNames[0] 

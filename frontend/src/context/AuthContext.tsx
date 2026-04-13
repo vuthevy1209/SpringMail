@@ -1,20 +1,36 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import authService from '../service/authService';
+import authService from '../services/authService';
 
-const AuthContext = createContext({
-	user: null,
-	authStatus: 'loading',
-	checkAuth: () => Promise.resolve(),
-	logout: () => Promise.resolve(),
+export interface User {
+    id?: string;
+    email?: string;
+    name?: string;
+    picture?: string;
+    syncStatus?: 'INITIAL_SYNC_IN_PROGRESS' | 'SYNCED' | 'ERROR' | string;
+    initialSyncProgress?: number;
+}
+
+export interface AuthContextType {
+    user: User | null;
+    authStatus: 'loading' | 'authenticated' | 'unauthenticated' | string;
+    checkAuth: () => Promise<void>;
+    logout: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType>({
+        user: null,
+        authStatus: 'loading',
+        checkAuth: () => Promise.resolve(),
+        logout: () => Promise.resolve(),
 });
 
-export function AuthProvider({ children }) {
-	const [user, setUser] = useState(null);
-	const [authStatus, setAuthStatus] = useState('loading'); // 'loading' | 'authenticated' | 'unauthenticated'
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+        const [user, setUser] = useState<User | null>(null);
+        const [authStatus, setAuthStatus] = useState<string>('loading'); // 'loading' | 'authenticated' | 'unauthenticated'
 
-	const checkAuth = async () => {
-		const startTime = Date.now();
-		const MIN_DELAY = 1000; // 1 second
+        const checkAuth = async () => {
+                const startTime = Date.now();
+                const MIN_DELAY = 1000;
 
 		try {
 			const userData = await authService.checkAuthStatus();

@@ -19,23 +19,34 @@ import {
     RefreshCw,
     Wand2,
 } from "lucide-react";
-import mailService from "../../service/mailService";
+import mailService from "../../services/mailService";
 import EmailBody from "./EmailBody";
 import EmailReaderSkeleton from "./EmailReaderSkeleton";
 import ReplyBox from "./ReplyBox";
 import { LAYOUT } from "../../constants/layout";
+import { useEmailActions } from "../../hooks/useEmailActions";
 
-export default function EmailReader({ folder, selectedThread, isLoading, onThreadUpdated, onThreadDeleted }) {
-    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-    const [actionToConfirm, setActionToConfirm] = useState(null);
-    const [summary, setSummary] = useState(null);
+export default function EmailReader({ folder, selectedThread, isLoading, onThreadUpdated, onThreadDeleted }: { folder: string; selectedThread: any; isLoading: boolean; onThreadUpdated?: (data: any) => void; onThreadDeleted?: (id: string) => void }) {
+    const thread = selectedThread;
+    
+    const {
+        isConfirmModalOpen,
+        actionToConfirm,
+        handleActionClick,
+        handleConfirmAction,
+        handleCancelAction
+    } = useEmailActions(thread, folder, onThreadUpdated, onThreadDeleted);
+
+    const [summary, setSummary] = useState<any | null>(null);
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [isMoveToDropdownOpen, setIsMoveToDropdownOpen] = useState(false);
     const [isReplying, setIsReplying] = useState(false);
     const [replyType, setReplyType] = useState('reply'); // 'reply' or 'forward'
-    const [targetMessage, setTargetMessage] = useState(null); // The specific message to reply/forward
+    const [targetMessage, setTargetMessage] = useState<any | null>(null); // The specific message to reply/forward
     
     const messagesEndRef = useRef(null);
+    const scrollContainerRef = useRef(null);
+    const lastMessageRef = useRef(null);
 
     useEffect(() => {
         setSummary(null);
@@ -44,9 +55,15 @@ export default function EmailReader({ folder, selectedThread, isLoading, onThrea
         setTargetMessage(null);
 
         if (selectedThread) {
-            // Scroll to the latest message
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTop = 0; // Reset scroll to top initially
+            }
+
+            // Scroll to the latest message if there are multiple parts of the thread
             setTimeout(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                if (selectedThread.messages && selectedThread.messages.length > 1) {
+                    lastMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             }, 100);
 
             // Mark as read when thread is selected
@@ -60,65 +77,6 @@ export default function EmailReader({ folder, selectedThread, isLoading, onThrea
             }
         }
     }, [selectedThread?.id]);
-
-    const handleActionClick = (actionName) => {
-        setActionToConfirm(actionName);
-        setIsConfirmModalOpen(true);
-    };
-
-    const handleConfirmAction = async () => {
-        if (!actionToConfirm || !thread) return;
-        
-        try {
-            let updatedData = null;
-            let shouldDelete = false;
-
-            if (actionToConfirm === 'Archive') {
-                updatedData = await mailService.modifyThread(thread.id, [], ["INBOX"]);
-                shouldDelete = true; // In Inbox view, archive means hide from Inbox
-            } else if (actionToConfirm === 'Report spam') {
-                let removeLabels = new Set(["INBOX"]);
-                if (folder) removeLabels.add(folder.toUpperCase());
-                removeLabels.delete("SPAM"); // Đảm bảo không vừa thêm vừa xóa
-                
-                updatedData = await mailService.modifyThread(thread.id, ["SPAM"], Array.from(removeLabels));
-                shouldDelete = true;
-            } else if (actionToConfirm === 'Delete') {
-                await mailService.trashThread(thread.id);
-                shouldDelete = true;
-            } else if (actionToConfirm === 'Mark as read') {
-                updatedData = await mailService.modifyThread(thread.id, [], ["UNREAD"]);
-            } else if (actionToConfirm === 'Mark as unread') {
-                updatedData = await mailService.modifyThread(thread.id, ["UNREAD"], []);
-            } else if (actionToConfirm.startsWith('Move to')) {
-                const folderName = actionToConfirm.replace('Move to ', '');
-                const targetLabelId = folderName.toUpperCase();
-                
-                let removeLabels = new Set(["INBOX"]);
-                if (folder) removeLabels.add(folder.toUpperCase());
-                removeLabels.delete(targetLabelId); // Đảm bảo không vừa thêm vừa xóa
-                
-                updatedData = await mailService.modifyThread(thread.id, [targetLabelId], Array.from(removeLabels));
-                shouldDelete = true;
-            }
-
-            if (shouldDelete) {
-                if (onThreadDeleted) onThreadDeleted(thread.id);
-            } else if (updatedData) {
-                if (onThreadUpdated) onThreadUpdated(updatedData);
-            }
-        } catch (error) {
-            console.error(`Failed to execute ${actionToConfirm}`, error);
-        } finally {
-            setIsConfirmModalOpen(false);
-            setActionToConfirm(null);
-        }
-    };
-
-    const handleCancelAction = () => {
-        setIsConfirmModalOpen(false);
-        setActionToConfirm(null);
-    };
 
     const handleSummarize = () => {
         setIsSummarizing(true);
@@ -152,8 +110,6 @@ Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực 
             </div>
         );
     }
-
-    const thread = selectedThread;
 
     return (
         <div className={LAYOUT.MAIN_CONTENT}>
@@ -252,7 +208,7 @@ Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực 
             </div>
 
             {/* Reading Pane */}
-            <div className="flex-1 px-12 py-8 overflow-y-auto">
+            <div ref={scrollContainerRef} className="flex-1 px-12 py-8 overflow-y-auto">
                 <div className="max-w-[1000px] w-full mx-auto">
                     <h1 className={`text-2xl mb-8 font-semibold ${thread.subject ? 'text-charcoal-ink' : 'text-muted-steel italic'}`}>
                         {thread.subject || "(No subject)"}
@@ -293,9 +249,10 @@ Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực 
                     {/* Stack of Messages in the Thread */}
                     <div className="space-y-6">
                         {thread.messages &&
-                            thread.messages.map((email) => (
+                            thread.messages.map((email, index) => (
                                 <React.Fragment key={email.id}>
                                     <div
+                                        ref={index === thread.messages.length - 1 ? lastMessageRef : null}
                                         className="bg-pure-surface rounded-xl p-6 border border-whisper shadow-sm group"
                                     >
                                     {/* Sender Info */}

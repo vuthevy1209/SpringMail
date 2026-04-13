@@ -2,6 +2,22 @@ import { Search, Inbox, Users, Tag, Info, Filter } from 'lucide-react';
 import ThreadItem from './ThreadItem';
 import InboxListSkeleton from './InboxListSkeleton';
 import { LAYOUT } from '../../constants/layout';
+import { Thread } from '../../types/mail';
+
+interface InboxListProps {
+    folder?: string;
+    selectedThreadId?: string | null;
+    onSelectThread?: (id: string) => void;
+    threads?: Thread[];
+    isLoading?: boolean;
+    activeTab?: string;
+    onTabChange?: (tab: string) => void;
+    showUnreadOnly?: boolean;
+    onToggleUnread?: () => void;
+    onLoadMore?: () => void;
+    hasMore?: boolean;
+    isLoadingMore?: boolean;
+}
 
 export default function InboxList({ 
     folder = 'inbox', 
@@ -16,8 +32,8 @@ export default function InboxList({
     onLoadMore,
     hasMore,
     isLoadingMore
-}) {
-    const folderTitle = {
+}: InboxListProps) {
+    const folderTitle: any = {
         inbox:     'Inbox',
         all:       'All Mail',
         starred:   'Starred',
