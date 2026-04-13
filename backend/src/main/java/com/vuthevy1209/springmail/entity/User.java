@@ -27,6 +27,7 @@ public class User {
     private Set<String> scopes;
     private Long lastHistoryId; // Mốc để 'Sync bù' khi server sập
     private SyncStatus syncStatus; 
+    private Integer initialSyncProgress; // % tiến trình lưu (0-100)
     private Instant lastSyncAt; 
     private String nextPageToken; // Lưu lại để nếu đang Full Sync mà sập thì biết đường chạy tiếp
     private Instant createdAt;

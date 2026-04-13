@@ -136,6 +136,8 @@ public class GmailMapper {
 				dto.setSubject(value);
 			} else if ("Date".equalsIgnoreCase(name)) {
 				dto.setDateString(value);
+			} else if ("Message-ID".equalsIgnoreCase(name)) {
+				dto.setMessageIdHeader(value);
 			}
 		}
 	}

@@ -32,9 +32,9 @@ public class AuthServiceImpl implements AuthService {
         Map<String, Object> attributes = user.getAttributes();
         String email = (String) attributes.get("email");
 
-        SyncStatus syncStatus = userRepository.findByEmail(email)
-                .map(User::getSyncStatus)
-                .orElse(null);
+        User dbUser = userRepository.findByEmail(email).orElse(null);
+        SyncStatus syncStatus = dbUser != null ? dbUser.getSyncStatus() : null;
+        Integer initialSyncProgress = (dbUser != null && dbUser.getInitialSyncProgress() != null) ? dbUser.getInitialSyncProgress() : 0;
 
         return UserResponse.builder()
                 .googleId((String) attributes.get("googleId"))
@@ -42,6 +42,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(email)
                 .avatar((String) attributes.get("avatar"))
                 .syncStatus(syncStatus)
+                .initialSyncProgress(initialSyncProgress)
                 .build();
     }
 

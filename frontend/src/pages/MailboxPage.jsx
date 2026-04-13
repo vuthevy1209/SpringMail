@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import mailService from '../service/mailService';
 import InboxList from '../components/emails/InboxList';
 import EmailReader from '../components/emails/EmailReader';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * Generic mailbox page shared by all folder routes:
@@ -32,6 +33,7 @@ export default function MailboxPage({ folder }) {
 	const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
 	const fetchControllerRef = useRef(null);
+    const { user } = useAuth();
 
 
 
@@ -65,6 +67,8 @@ export default function MailboxPage({ folder }) {
         fetchControllerRef.current = controller;
 
         const fetchLatestEmails = async () => {
+            if (user?.syncStatus === 'INITIAL_SYNC_IN_PROGRESS') return;
+
             setThreads([]);
             setSelectedThreadId(null);
             setSelectedThreadData(null);
@@ -121,7 +125,7 @@ export default function MailboxPage({ folder }) {
         return () => {
             controller.abort();
         };
-    }, [folder, activeTab]);
+    }, [folder, activeTab, user?.syncStatus]);
 
 	// Fetch thread detail when selectedThreadId changes
 	useEffect(() => {

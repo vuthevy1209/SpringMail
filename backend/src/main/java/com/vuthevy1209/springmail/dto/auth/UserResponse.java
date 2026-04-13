@@ -9,6 +9,7 @@ public record UserResponse(
     String givenName,
     String email,
     String avatar,
-    SyncStatus syncStatus
+    SyncStatus syncStatus,
+    Integer initialSyncProgress
 ) {
 }

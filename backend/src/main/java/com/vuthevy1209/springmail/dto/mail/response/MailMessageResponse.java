@@ -14,6 +14,7 @@ import java.util.Set;
 public class MailMessageResponse {
 	private String id;
 	private String threadId;
+	private String messageIdHeader;
 	private String snippet;
 	private Long internalDate;
 	private Long historyId;

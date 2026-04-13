@@ -56,7 +56,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 
 	@Override
 	public void syncMail(User user, String accessToken) throws IOException {
-		boolean isFirstSync = user.getLastHistoryId() == null;
+		boolean isFirstSync = user.getSyncStatus() != SyncStatus.COMPLETED;
 		try {
 			if (isFirstSync) {
 				executeInitialSyncSequence(user, accessToken);
@@ -79,9 +79,21 @@ public class MailSyncServiceImpl implements MailSyncService {
 		// Step 2: Fetch the first page of threads
 		GmailListThreadsResponseDto threadsResponse = gmailService.listThreads(accessToken, null, QUANTITY_OF_THREAD_NEEDED_TO_SYNC, null);
 
+		int totalThreads = 0;
+		int syncedThreads = 0;
+
 		if (threadsResponse.getThreads() != null) {
+			totalThreads = threadsResponse.getThreads().size();
 			for (GmailThreadDto threadMetadata : threadsResponse.getThreads()) {
 				fetchAndProcessThread(user, accessToken, threadMetadata.getId());
+				syncedThreads++;
+
+				// Thỉnh thoảng update % xuống DB đỡ tải quá nặng (cữ 10 thread update 1 lần hoặc khi xong hết)
+				if (syncedThreads % 10 == 0 || syncedThreads == totalThreads) {
+					int percent = (int) Math.round((double) syncedThreads / totalThreads * 100);
+					user.setInitialSyncProgress(percent);
+					userRepository.save(user);
+				}
 			}
 		}
 
@@ -89,9 +101,16 @@ public class MailSyncServiceImpl implements MailSyncService {
 		user.setLastHistoryId(lastHistoryId);
 		user.setNextPageToken(threadsResponse.getNextPageToken());
 		user.setSyncStatus(SyncStatus.COMPLETED);
+		user.setInitialSyncProgress(100);
 		userRepository.save(user);
 
 		log.info("Initial sync completed for user {} with historyId {}", user.getEmail(), lastHistoryId);
+		
+		// Ngay sau khi initial sync xong, gọi incremental sync một lần 
+		// để bắt lại tất cả các email mới rơi xuống trong khoảng thời gian chạy vòng lặp Initial Sync 
+		// (những webhooks bị bỏ qua vì status đang là INITIAL_SYNC_IN_PROGRESS)
+		log.info("Triggering follow-up incremental sync to catch up emails that arrived during initial sync...");
+		executeIncrementalSyncSequence(user, accessToken);
 	}
 
 	private void executeIncrementalSyncSequence(User user, String accessToken) throws IOException {

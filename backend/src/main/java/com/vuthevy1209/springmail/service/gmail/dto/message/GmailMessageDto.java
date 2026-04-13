@@ -15,6 +15,7 @@ import java.util.List;
 public class GmailMessageDto {
 	private String id;
 	private String threadId;
+	private String messageIdHeader; // RFC 2822 Message-ID
 	private String snippet;
 	private Long internalDate;
 	private Long historyId;

@@ -20,6 +20,7 @@ public class MailMessage {
     @Id
     private String id; // Gmail Message ID
     private String threadId;
+    private String messageIdHeader; // Lưu RFC 2822 Message-ID
     private String snippet;
     private Long internalDate;
     private Long historyId;

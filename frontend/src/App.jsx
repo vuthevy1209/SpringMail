@@ -5,10 +5,12 @@ import MailboxPage from './pages/MailboxPage';
 import MainLayout from './components/layout/MainLayout';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import SyncModal from './components/auth/SyncModal';
 
 export default function App() {
 	return (
 		<AuthProvider>
+			<SyncModal />
 			<Routes>
 				{/* Public Routes */}
 				<Route path="/login" element={<LoginPage />} />

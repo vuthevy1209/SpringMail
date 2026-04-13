@@ -5,6 +5,7 @@ import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
 import com.vuthevy1209.springmail.dto.mail.request.SendMailRequest;
 import com.vuthevy1209.springmail.dto.mail.request.ThreadActionRequest;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
+import com.vuthevy1209.springmail.enums.SyncStatus;
 import com.vuthevy1209.springmail.repository.MailMessageRepository;
 import com.vuthevy1209.springmail.repository.MailThreadRepository;
 import com.vuthevy1209.springmail.repository.UserRepository;
@@ -56,7 +57,7 @@ public class MailServiceImpl implements MailService {
 
 	private final AuthorizedClientServiceOAuth2AuthorizedClientManager backgroundAuthorizedClientManager;
 
-	private final MailThreadConverter mailThreadConverter; 
+	private final MailThreadConverter mailThreadConverter;
 
 	@Override
 	public Page<MailThreadResponse> getMailThreads(MailThreadsRequest request, int page, int size) throws IOException {
@@ -136,6 +137,13 @@ public class MailServiceImpl implements MailService {
 		User user = userRepository.findByEmail(email).orElse(null);
 		if (user == null) {
 			log.warn("User {} not found in DB. Cannot process webhook.", email);
+			return;
+		}
+
+		// Nếu người dùng đang trong quá trình đồng bộ lần đầu (INITIAL_SYNC_IN_PROGRESS hoặc PENDING)
+		// thì KHÔNG chạy đè đồng bộ Incremental, tránh đụng độ và phá hỏng dữ liệu Thread.
+		if (user.getSyncStatus() != SyncStatus.COMPLETED) {
+			log.info("User {} is currently in initial sync or not fully synced (Status: {}). Skipping webhook processing.", email, user.getSyncStatus());
 			return;
 		}
 

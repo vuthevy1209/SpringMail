@@ -22,6 +22,7 @@ import {
 import mailService from "../../service/mailService";
 import EmailBody from "./EmailBody";
 import EmailReaderSkeleton from "./EmailReaderSkeleton";
+import ReplyBox from "./ReplyBox";
 import { LAYOUT } from "../../constants/layout";
 
 export default function EmailReader({ folder, selectedThread, isLoading, onThreadUpdated, onThreadDeleted }) {
@@ -31,13 +32,11 @@ export default function EmailReader({ folder, selectedThread, isLoading, onThrea
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [isMoveToDropdownOpen, setIsMoveToDropdownOpen] = useState(false);
     const [isReplying, setIsReplying] = useState(false);
-    const [replyContent, setReplyContent] = useState("");
 
     useEffect(() => {
         setSummary(null);
         setIsSummarizing(false);
         setIsReplying(false);
-        setReplyContent("");
 
         if (selectedThread) {
             // Mark as read when thread is selected
@@ -385,64 +384,11 @@ Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực 
 
                     {/* Reply / Forward Actions or Composer */}
                     {isReplying ? (
-                        <div className="mt-8 mb-8 bg-pure-surface rounded-xl border border-spring-green/20 shadow-[0_4px_24px_rgba(0,0,0,0.06)] overflow-hidden ring-1 ring-spring-green/10">
-                            {/* Composer Header */}
-                            <div className="bg-[#f2faf6] px-6 py-4 border-b border-spring-green/10 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-1.5 text-spring-green font-semibold text-[13px] tracking-wide">
-                                        <Wand2 size={15} />
-                                        <span>LLM Draft</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-muted-steel/60 text-[12px] italic">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-spring-green animate-pulse"></div>
-                                        AI Writing...
-                                    </div>
-                                </div>
-                                <div className="text-[11px] font-bold tracking-widest text-[#8da69c]">
-                                    FORMAL TONE
-                                </div>
-                            </div>
-                            
-                            {/* Editor Area */}
-                            <div className="p-6">
-                                <textarea
-                                    autoFocus
-                                    className="w-full min-h-[200px] text-charcoal-ink text-[15px] leading-relaxed resize-none focus:outline-none placeholder:text-muted-steel/50 bg-transparent"
-                                    placeholder="Type your reply here..."
-                                    value={replyContent}
-                                    onChange={(e) => setReplyContent(e.target.value)}
-                                />
-                            </div>
-
-                            {/* Composer Footer Actions */}
-                            <div className="bg-canvas-gray/30 px-6 py-4 border-t border-whisper flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <button 
-                                        className="bg-spring-green hover:bg-[#00A86B] text-white px-6 py-2 rounded font-medium text-[14px] transition-colors shadow-sm"
-                                        onClick={() => setIsReplying(false)}
-                                    >
-                                        Send
-                                    </button>
-                                    <button className="bg-[#006039] hover:bg-[#004f2f] text-white flex items-center gap-1.5 px-4 py-2 rounded font-medium text-[14px] transition-colors shadow-sm border border-[#006039]">
-                                        <ListChecks size={16} />
-                                        Insert
-                                    </button>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button className="flex items-center justify-center gap-2 px-4 py-2 border border-whisper rounded text-[14px] font-medium text-charcoal-ink bg-pure-surface hover:bg-canvas-gray transition-colors shadow-sm">
-                                        <RefreshCw size={14} className="text-muted-steel" />
-                                        Regenerate
-                                    </button>
-                                    <button 
-                                        onClick={() => setIsReplying(false)}
-                                        className="flex items-center justify-center p-2 text-muted-steel hover:text-rose-500 rounded bg-pure-surface hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-colors"
-                                        title="Discard draft"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <ReplyBox 
+                            thread={thread}
+                            onDiscard={() => setIsReplying(false)}
+                            onSent={() => setIsReplying(false)}
+                        />
                     ) : (
                         <div className="mt-8 flex gap-3 pb-8">
                             <button 

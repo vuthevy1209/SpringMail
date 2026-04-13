@@ -76,15 +76,27 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 		var authorizedClient = authorizedClientService.loadAuthorizedClient(clientRegistrationId, oauthToken.getName());
 		if (authorizedClient != null && authorizedClient.getAccessToken() != null) {
 			String accessTokenValue = authorizedClient.getAccessToken().getTokenValue();
-            try {
-                // Đăng ký nhận thông báo thay đổi mail cho user này qua Pub/Sub
-                gmailWatchService.setupWatch(savedUser, accessTokenValue);
 
-                // Kéo dỡ liệu lần đầu hoặc Incremental
-                mailSyncService.syncMail(savedUser, accessTokenValue);
-            } catch (IOException e) {
-                log.error("Background sync / watch failed for user {}: {}", email, e.getMessage());
+            // Cập nhật trạng thái PENDING/INITIAL_SYNC_IN_PROGRESS trước khi sync
+            if (savedUser.getSyncStatus() == null || savedUser.getSyncStatus() == com.vuthevy1209.springmail.enums.SyncStatus.PENDING) {
+                savedUser.setSyncStatus(com.vuthevy1209.springmail.enums.SyncStatus.INITIAL_SYNC_IN_PROGRESS);
+                userRepository.save(savedUser);
             }
+
+            // Chạy bất đồng bộ
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                try {
+                    // Đăng ký nhận thông báo thay đổi mail cho user này qua Pub/Sub
+                    gmailWatchService.setupWatch(savedUser, accessTokenValue);
+
+                    // Kéo dữ liệu lần đầu hoặc Incremental
+                    mailSyncService.syncMail(savedUser, accessTokenValue);
+                } catch (IOException e) {
+                    log.error("Background sync / watch failed for user {}: {}", email, e.getMessage());
+                    savedUser.setSyncStatus(com.vuthevy1209.springmail.enums.SyncStatus.FAILED);
+                    userRepository.save(savedUser);
+                }
+            });
 		}
 
         // 3. Điều hướng về Frontend

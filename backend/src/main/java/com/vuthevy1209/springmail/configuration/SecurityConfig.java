@@ -76,7 +76,7 @@ public class SecurityConfig {
         authorizationRequestResolver.setAuthorizationRequestCustomizer(
                 customizer -> customizer.additionalParameters(params -> {
                     params.put("access_type", "offline");
-                    params.put("prompt", "select_account");
+                    params.put("prompt", "select_account consent");
                 })
         );
 
