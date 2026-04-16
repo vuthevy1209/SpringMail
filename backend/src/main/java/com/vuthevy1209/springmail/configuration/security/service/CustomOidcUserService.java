@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.configuration;
+package com.vuthevy1209.springmail.configuration.security.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;

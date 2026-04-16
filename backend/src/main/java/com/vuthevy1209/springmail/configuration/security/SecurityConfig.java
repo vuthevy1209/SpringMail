@@ -1,7 +1,9 @@
-package com.vuthevy1209.springmail.configuration;
+package com.vuthevy1209.springmail.configuration.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import com.vuthevy1209.springmail.configuration.security.service.CustomOidcUserService;
+import com.vuthevy1209.springmail.configuration.security.handler.OAuth2LoginSuccessHandler;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -19,7 +21,6 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
-import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
 
 @Configuration
 @EnableWebSecurity
@@ -76,52 +77,12 @@ public class SecurityConfig {
         authorizationRequestResolver.setAuthorizationRequestCustomizer(
                 customizer -> customizer.additionalParameters(params -> {
                     params.put("access_type", "offline");
-                    params.put("prompt", "select_account consent");
+//                    params.put("prompt", "select_account consent");
+                    params.put("prompt", "select_account");
                 })
         );
 
         return authorizationRequestResolver;
     }
 
-    // 1. Manager cho Web Context (Mặc định)
-    @Bean
-    public OAuth2AuthorizedClientManager authorizedClientManager(
-            ClientRegistrationRepository clientRegistrationRepository,
-            OAuth2AuthorizedClientRepository authorizedClientRepository) {
-
-        OAuth2AuthorizedClientProvider authorizedClientProvider =
-                OAuth2AuthorizedClientProviderBuilder.builder()
-                        .authorizationCode()
-                        .refreshToken()
-                        .clientCredentials()
-                        .build();
-
-        DefaultOAuth2AuthorizedClientManager authorizedClientManager =
-                new DefaultOAuth2AuthorizedClientManager(
-                        clientRegistrationRepository, authorizedClientRepository);
-
-        authorizedClientManager.setAuthorizedClientProvider(authorizedClientProvider);
-
-        return authorizedClientManager;
-    }
-
-    // 2. Manager cho Background Context (Webhooks, Async)
-    @Bean
-    public AuthorizedClientServiceOAuth2AuthorizedClientManager backgroundAuthorizedClientManager(
-            ClientRegistrationRepository clientRegistrationRepository,
-            OAuth2AuthorizedClientService authorizedClientService) {
-        
-        OAuth2AuthorizedClientProvider authorizedClientProvider =
-                OAuth2AuthorizedClientProviderBuilder.builder()
-                        .refreshToken()
-                        .build();
-
-        AuthorizedClientServiceOAuth2AuthorizedClientManager authorizedClientManager =
-                new AuthorizedClientServiceOAuth2AuthorizedClientManager(
-                        clientRegistrationRepository, authorizedClientService);
-
-        authorizedClientManager.setAuthorizedClientProvider(authorizedClientProvider);
-
-        return authorizedClientManager;
-    }
 }

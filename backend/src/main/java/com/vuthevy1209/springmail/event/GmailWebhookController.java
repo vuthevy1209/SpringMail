@@ -1,7 +1,7 @@
 package com.vuthevy1209.springmail.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vuthevy1209.springmail.service.mail.MailService;
+import com.vuthevy1209.springmail.service.mail.MailSyncService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +19,7 @@ import java.util.Base64;
 @RequiredArgsConstructor
 public class GmailWebhookController {
 
-    private final MailService mailService;
+    private final MailSyncService mailSyncService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Data
@@ -65,7 +65,7 @@ public class GmailWebhookController {
 
             if (email != null && historyId != null) {
                 log.info("Received Gmail notification for email: {}, historyId: {}", email, historyId);
-                mailService.processNewEmails(email, historyId);
+                mailSyncService.processNewEmails(email, historyId);
             } else {
                 log.warn("Received Gmail notification with missing email or historyId: {}", decodedData);
             }

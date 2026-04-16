@@ -130,45 +130,6 @@ public class MailServiceImpl implements MailService {
 		return new ResponseEntity<>(content, headers, HttpStatus.OK);
 	}
 
-	@Override
-	public void processNewEmails(String email, String historyId) {
-		log.info("Processing new emails for {} triggered by webhook", email);
-
-		User user = userRepository.findByEmail(email).orElse(null);
-		if (user == null) {
-			log.warn("User {} not found in DB. Cannot process webhook.", email);
-			return;
-		}
-
-		// Nếu người dùng đang trong quá trình đồng bộ lần đầu (INITIAL_SYNC_IN_PROGRESS hoặc PENDING)
-		// thì KHÔNG chạy đè đồng bộ Incremental, tránh đụng độ và phá hỏng dữ liệu Thread.
-		if (user.getSyncStatus() != SyncStatus.COMPLETED) {
-			log.info("User {} is currently in initial sync or not fully synced (Status: {}). Skipping webhook processing.", email, user.getSyncStatus());
-			return;
-		}
-
-		// Tạo một proxy Authentication dựa trên email (cùng định dạng principal đã lưu)
-		Authentication principal =
-			new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
-
-		OAuth2AuthorizeRequest authorizeRequest =
-			OAuth2AuthorizeRequest.withClientRegistrationId("google")
-				.principal(principal)
-				.build();
-
-		OAuth2AuthorizedClient client = backgroundAuthorizedClientManager.authorize(authorizeRequest);
-		if (client == null || client.getAccessToken() == null) {
-			log.warn("OAuth2AuthorizedClient not found or missing access token for user {}", email);
-			return;
-		}
-
-		try {
-			String accessToken = client.getAccessToken().getTokenValue();
-			mailSyncService.syncMail(user, accessToken);
-		} catch (Exception e) {
-			log.error("Failed to sync new emails for user {}", email, e);
-		}
-	}
 
 	@Override
 	@Transactional

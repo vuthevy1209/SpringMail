@@ -24,5 +24,4 @@ public interface MailService {
 
 	ResponseEntity<byte[]> getAttachment(AttachmentRequest request) throws IOException;
 
-	void processNewEmails(String email, String historyId);
 }

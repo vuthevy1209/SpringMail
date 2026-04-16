@@ -31,7 +31,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -50,9 +57,10 @@ public class MailSyncServiceImpl implements MailSyncService {
 	private final MailThreadConverter mailThreadConverter;
 	private final MailMessageConverter mailMessageConverter;
 
+	private final AuthorizedClientServiceOAuth2AuthorizedClientManager backgroundAuthorizedClientManager;
+
 	private final String FORMAT = "full";
 	private final Long QUANTITY_OF_THREAD_NEEDED_TO_SYNC = 200L;
-
 
 	@Override
 	public void syncMail(User user, String accessToken) throws IOException {
@@ -77,7 +85,8 @@ public class MailSyncServiceImpl implements MailSyncService {
 		Long lastHistoryId = profile.getHistoryId();
 
 		// Step 2: Fetch the first page of threads
-		GmailListThreadsResponseDto threadsResponse = gmailService.listThreads(accessToken, null, QUANTITY_OF_THREAD_NEEDED_TO_SYNC, null);
+		GmailListThreadsResponseDto threadsResponse = gmailService.listThreads(accessToken, null,
+				QUANTITY_OF_THREAD_NEEDED_TO_SYNC, null);
 
 		int totalThreads = 0;
 		int syncedThreads = 0;
@@ -88,7 +97,8 @@ public class MailSyncServiceImpl implements MailSyncService {
 				fetchAndProcessThread(user, accessToken, threadMetadata.getId());
 				syncedThreads++;
 
-				// Thỉnh thoảng update % xuống DB đỡ tải quá nặng (cữ 10 thread update 1 lần hoặc khi xong hết)
+				// Thỉnh thoảng update % xuống DB đỡ tải quá nặng (cữ 10 thread update 1 lần
+				// hoặc khi xong hết)
 				if (syncedThreads % 10 == 0 || syncedThreads == totalThreads) {
 					int percent = (int) Math.round((double) syncedThreads / totalThreads * 100);
 					user.setInitialSyncProgress(percent);
@@ -97,7 +107,8 @@ public class MailSyncServiceImpl implements MailSyncService {
 			}
 		}
 
-		// Step 3: Update user state - save progress for pagination and anchor for incremental sync
+		// Step 3: Update user state - save progress for pagination and anchor for
+		// incremental sync
 		user.setLastHistoryId(lastHistoryId);
 		user.setNextPageToken(threadsResponse.getNextPageToken());
 		user.setSyncStatus(SyncStatus.COMPLETED);
@@ -105,9 +116,10 @@ public class MailSyncServiceImpl implements MailSyncService {
 		userRepository.save(user);
 
 		log.info("Initial sync completed for user {} with historyId {}", user.getEmail(), lastHistoryId);
-		
-		// Ngay sau khi initial sync xong, gọi incremental sync một lần 
-		// để bắt lại tất cả các email mới rơi xuống trong khoảng thời gian chạy vòng lặp Initial Sync 
+
+		// Ngay sau khi initial sync xong, gọi incremental sync một lần
+		// để bắt lại tất cả các email mới rơi xuống trong khoảng thời gian chạy vòng
+		// lặp Initial Sync
 		// (những webhooks bị bỏ qua vì status đang là INITIAL_SYNC_IN_PROGRESS)
 		log.info("Triggering follow-up incremental sync to catch up emails that arrived during initial sync...");
 		executeIncrementalSyncSequence(user, accessToken);
@@ -121,7 +133,8 @@ public class MailSyncServiceImpl implements MailSyncService {
 			Long newLastHistoryId = user.getLastHistoryId();
 
 			do {
-				GmailListHistoryResponseDto gmailListHistory = gmailService.listHistory(accessToken, user.getLastHistoryId().toString(), 100L, pageToken);
+				GmailListHistoryResponseDto gmailListHistory = gmailService.listHistory(accessToken,
+						user.getLastHistoryId().toString(), 100L, pageToken);
 
 				if (gmailListHistory.getHistory() != null) {
 					Set<String> threadIdsToUpdate = new HashSet<>();
@@ -151,7 +164,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 							for (GmailHistoryMessageDeletedDto deleted : history.getMessagesDeleted()) {
 								String messageId = deleted.getMessage().getId();
 								log.info("Handling message deletion: {}", messageId);
-								
+
 								// Try to get threadId to update metadata later
 								if (deleted.getMessage().getThreadId() != null) {
 									threadIdsToUpdate.add(deleted.getMessage().getThreadId());
@@ -159,7 +172,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 									mailMessageRepository.findById(messageId)
 											.ifPresent(msg -> threadIdsToUpdate.add(msg.getThreadId()));
 								}
-								
+
 								mailMessageRepository.deleteById(messageId);
 							}
 						}
@@ -252,7 +265,6 @@ public class MailSyncServiceImpl implements MailSyncService {
 		mailThreadRepository.save(mailThreadEntity);
 	}
 
-
 	@Override
 	public FetchOlderResponse fetchOlderThreads(FetchOlderRequest request) throws IOException {
 		OAuth2User oauthUser = SecurityUtils.getCurrentOAuth2User();
@@ -269,8 +281,8 @@ public class MailSyncServiceImpl implements MailSyncService {
 		String query = null;
 		if (request.getLabelIds() != null && !request.getLabelIds().isEmpty()) {
 			query = request.getLabelIds().stream()
-				.map(MailLabel::toGmailQuery)
-				.collect(Collectors.joining(" "));
+					.map(MailLabel::toGmailQuery)
+					.collect(Collectors.joining(" "));
 		}
 
 		if (request.getBeforeTimestamp() != null && request.getBeforeTimestamp() > 0) {
@@ -280,16 +292,18 @@ public class MailSyncServiceImpl implements MailSyncService {
 
 		int maxResults = request.getMaxResults() > 0 ? request.getMaxResults() : 50;
 
-		log.info("Fetching older threads for user {}, query {}, pageToken {}", user.getEmail(), query, request.getPageToken());
+		log.info("Fetching older threads for user {}, query {}, pageToken {}", user.getEmail(), query,
+				request.getPageToken());
 
 		GmailListThreadsResponseDto response;
 		try {
-				response = gmailService.listThreads(accessToken, query, (long) maxResults, request.getPageToken());
+			response = gmailService.listThreads(accessToken, query, (long) maxResults, request.getPageToken());
 		} catch (IOException e) {
-				if (e.getMessage() != null && (e.getMessage().contains("401 Unauthorized") || e.getMessage().contains("401"))) {
-						throw new AppException(ErrorCode.GMAIL_UNAUTHENTICATED);
-				}
-				throw e;
+			if (e.getMessage() != null
+					&& (e.getMessage().contains("401 Unauthorized") || e.getMessage().contains("401"))) {
+				throw new AppException(ErrorCode.GMAIL_UNAUTHENTICATED);
+			}
+			throw e;
 		}
 
 		int count = 0;
@@ -305,5 +319,45 @@ public class MailSyncServiceImpl implements MailSyncService {
 				.nextPageToken(response.getNextPageToken())
 				.fetchedCount(count)
 				.build();
+	}
+
+	@Override
+	public void processNewEmails(String email, String historyId) {
+		log.info("Processing new emails for {} triggered by webhook", email);
+
+		User user = userRepository.findByEmail(email).orElse(null);
+		if (user == null) {
+				log.warn("User {} not found in DB. Cannot process webhook.", email);
+				return;
+		}
+
+		// Nếu người dùng đang trong quá trình đồng bộ lần đầu (INITIAL_SYNC_IN_PROGRESS hoặc PENDING)
+		// thì KHÔNG chạy đè đồng bộ Incremental, tránh đụng độ và phá hỏng dữ liệu Thread.
+		if (user.getSyncStatus() != SyncStatus.COMPLETED) {
+				log.info("User {} is currently in initial sync or not fully synced (Status: {}). Skipping webhook processing.", email, user.getSyncStatus());
+				return;
+		}
+
+		// Tạo một proxy Authentication dựa trên email (cùng định dạng principal đã lưu)
+		Authentication principal =
+				new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
+
+		OAuth2AuthorizeRequest authorizeRequest =
+				OAuth2AuthorizeRequest.withClientRegistrationId("google")
+						.principal(principal)
+						.build();
+
+		OAuth2AuthorizedClient client = backgroundAuthorizedClientManager.authorize(authorizeRequest);
+		if (client == null || client.getAccessToken() == null) {
+				log.warn("OAuth2AuthorizedClient not found or missing access token for user {}", email);
+				return;
+		}
+
+		try {
+				String accessToken = client.getAccessToken().getTokenValue();
+				this.syncMail(user, accessToken);
+		} catch (Exception e) {
+				log.error("Failed to sync new emails for user {}", email, e);
+		}
 	}
 }

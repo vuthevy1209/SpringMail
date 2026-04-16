@@ -8,4 +8,5 @@ import java.io.IOException;
 public interface MailSyncService {
         void syncMail(User user, String accessToken) throws IOException;
         FetchOlderResponse fetchOlderThreads(FetchOlderRequest request) throws IOException;
+        void processNewEmails(String email, String historyId);
 }

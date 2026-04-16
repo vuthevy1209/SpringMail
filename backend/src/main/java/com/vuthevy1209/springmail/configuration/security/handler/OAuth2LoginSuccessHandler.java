@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.configuration;
+package com.vuthevy1209.springmail.configuration.security.handler;
 
 import com.vuthevy1209.springmail.converters.UserConverter;
 import com.vuthevy1209.springmail.entity.User;
@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
 
 import com.vuthevy1209.springmail.service.mail.MailSyncService;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
@@ -84,7 +85,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             }
 
             // Chạy bất đồng bộ
-            java.util.concurrent.CompletableFuture.runAsync(() -> {
+            CompletableFuture.runAsync(() -> {
                 try {
                     // Đăng ký nhận thông báo thay đổi mail cho user này qua Pub/Sub
                     gmailWatchService.setupWatch(savedUser, accessTokenValue);

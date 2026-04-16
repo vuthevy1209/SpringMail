@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.configuration;
+package com.vuthevy1209.springmail.configuration.security.service;
 
 import com.vuthevy1209.springmail.entity.PersistentOAuth2AuthorizedClient;
 import com.vuthevy1209.springmail.repository.PersistentOAuth2AuthorizedClientRepository;

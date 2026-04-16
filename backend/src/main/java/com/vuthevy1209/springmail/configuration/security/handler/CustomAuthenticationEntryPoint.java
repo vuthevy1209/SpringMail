@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.configuration;
+package com.vuthevy1209.springmail.configuration.security.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vuthevy1209.springmail.dto.ApiResponse;
