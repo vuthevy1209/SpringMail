@@ -78,6 +78,11 @@ public class GlobalExceptionHandler {
     // Handle IO exceptions
     @ExceptionHandler(value = IOException.class)
     ResponseEntity<ApiResponse<?>> handlingIOException(IOException exception, HttpServletRequest request) {
+        if (isBrokenPipe(exception)) {
+            log.warn("Broken pipe [{} {}]: Client disconnected prematurely.", request.getMethod(), request.getRequestURI());
+            return null; // Return null to indicate the response is already handled/closed
+        }
+
         log.error("IOException [{} {}]: {}", request.getMethod(), request.getRequestURI(), exception.getMessage());
         ErrorCode errorCode = ErrorCode.UNCATEGORIZED_EXCEPTION;
         ApiResponse<?> apiResponse = ApiResponse.builder()
@@ -85,7 +90,9 @@ public class GlobalExceptionHandler {
                 .message("IO Error: " + exception.getMessage())
                 .build();
 
-        return ResponseEntity.status(errorCode.getStatusCode()).body(apiResponse);
+        return ResponseEntity.status(errorCode.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(apiResponse);
     }
 }
 

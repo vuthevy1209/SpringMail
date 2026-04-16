@@ -20,7 +20,7 @@ public class MailElasticSearch {
     @Field(type = FieldType.Keyword)
     private String threadId;
 
-    @Field(type = FieldType.Text, analyzer = "standard")
+    @Field(type = FieldType.Text, analyzer = "autocomplete_analyzer", searchAnalyzer = "standard")
     private String subject;
 
     @Field(type = FieldType.Text, analyzer = "standard")
