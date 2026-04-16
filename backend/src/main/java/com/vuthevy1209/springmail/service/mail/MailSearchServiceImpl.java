@@ -62,4 +62,19 @@ public class MailSearchServiceImpl implements MailSearchService {
         // Map trả về Page<MailThreadResponse>
         return threads.map(mailThreadConverter::toMailThreadResponse);
     }
+
+    @Override
+    public List<String> suggestSubjects(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return List.of();
+        }
+        
+        List<MailElasticSearch> results = emailElasticSearchRepository.suggestSubjects(keyword);
+        
+        return results.stream()
+                .map(MailElasticSearch::getSubject)
+                .distinct()
+                .limit(8)
+                .toList();
+    }
 }

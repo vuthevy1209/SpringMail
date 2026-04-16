@@ -1,9 +1,10 @@
 import { Search, Inbox, Users, Tag, Info, Filter } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ThreadItem from './ThreadItem';
 import InboxListSkeleton from './InboxListSkeleton';
 import { LAYOUT } from '../../constants/layout';
 import { Thread } from '../../types/mail';
+import mailService from '../../services/mailService';
 
 interface InboxListProps {
     folder?: string;
@@ -57,10 +58,41 @@ export default function InboxList({
     ];
 
     const [inputValue, setInputValue] = useState(searchQuery);
+    const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setInputValue(searchQuery);
     }, [searchQuery]);
+
+    useEffect(() => {
+        const fetchSuggestions = async () => {
+            if (inputValue.trim().length > 1) {
+                try {
+                    const results = await mailService.suggestSubjects(inputValue);
+                    setSuggestions(results);
+                } catch (error) {
+                    console.error("Error fetching suggestions:", error);
+                }
+            } else {
+                setSuggestions([]);
+            }
+        };
+
+        const timeoutId = setTimeout(fetchSuggestions, 300);
+        return () => clearTimeout(timeoutId);
+    }, [inputValue]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     return (
         <div className={`${LAYOUT.INBOX_LIST_WIDTH} bg-pure-surface ${LAYOUT.COLUMN_BORDER} flex flex-col h-screen`}>
@@ -83,22 +115,47 @@ export default function InboxList({
                         <span>Unread</span>
                     </button>
                 </div>
-                <div className="flex items-center bg-canvas-gray px-3 py-2.5 rounded-xl gap-3 border border-transparent transition-all duration-300 focus-within:bg-pure-surface focus-within:border-spring-green/30 focus-within:shadow-xl focus-within:shadow-spring-green/5">
-                    <button onClick={() => onSearchSubmit && onSearchSubmit(inputValue)} className="bg-transparent border-none p-0 cursor-pointer flex items-center justify-center outline-none">
-                        <Search size={18} className="text-muted-steel shrink-0 transition-colors hover:text-spring-green group-focus-within:text-spring-green" />
-                    </button>
-                    <input
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                onSearchSubmit && onSearchSubmit(inputValue);
-                            }
-                        }}
-                        placeholder="Search mail or ask AI..."
-                        className="bg-transparent border-none outline-none w-full text-sm font-medium text-charcoal-ink placeholder:text-muted-steel/50"
-                    />
+                <div className="relative" ref={containerRef}>
+                    <div className="flex items-center bg-canvas-gray px-3 py-2.5 rounded-xl gap-3 border border-transparent transition-all duration-300 focus-within:bg-pure-surface focus-within:border-spring-green/30 focus-within:shadow-xl focus-within:shadow-spring-green/5">
+                        <button onClick={() => onSearchSubmit && onSearchSubmit(inputValue)} className="bg-transparent border-none p-0 cursor-pointer flex items-center justify-center outline-none">
+                            <Search size={18} className="text-muted-steel shrink-0 transition-colors hover:text-spring-green group-focus-within:text-spring-green" />
+                        </button>
+                        <input
+                            type="text"
+                            value={inputValue}
+                            onChange={(e) => {
+                                setInputValue(e.target.value);
+                                setShowSuggestions(true);
+                            }}
+                            onFocus={() => setShowSuggestions(true)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    setShowSuggestions(false);
+                                    if (onSearchSubmit) onSearchSubmit(inputValue);
+                                }
+                            }}
+                            placeholder="Search mail or ask AI..."
+                            className="bg-transparent border-none outline-none w-full text-sm font-medium text-charcoal-ink placeholder:text-muted-steel/50"
+                        />
+                    </div>
+                    {showSuggestions && suggestions.length > 0 && (
+                        <ul className="absolute z-10 w-full bg-pure-surface border border-whisper/50 rounded-xl shadow-lg mt-2 max-h-60 overflow-y-auto left-0 !p-2 !m-0 !mt-1 list-none box-border">
+                            {suggestions.map((suggestion, index) => (
+                                <li 
+                                    key={index} 
+                                    className="p-3 hover:bg-canvas-gray cursor-pointer text-sm text-charcoal-ink rounded-lg transition-colors truncate"
+                                    onClick={() => {
+                                        setInputValue(suggestion);
+                                        setShowSuggestions(false);
+                                        if (onSearchSubmit) onSearchSubmit(suggestion);
+                                    }}
+                                >
+                                    <Search size={14} className="inline-block mr-2 text-muted-steel/70" />
+                                    {suggestion}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
             </div>
 

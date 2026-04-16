@@ -31,4 +31,16 @@ import java.util.List;
             }
             """)
         List<MailElasticSearch> searchByKeyword(String keyword);
+
+        @Query("""
+            {
+                "match_phrase_prefix": {
+                    "subject": {
+                        "query": "?0",
+                        "max_expansions": 10
+                    }
+                }
+            }
+        """)
+        List<MailElasticSearch> suggestSubjects(String prefix);
 }

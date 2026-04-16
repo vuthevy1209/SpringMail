@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/mail")
@@ -38,6 +39,13 @@ public class MailController {
 	) throws IOException {
 		return ApiResponse.<Page<MailThreadResponse>>builder()
 				.result(mailSearchService.searchEmails(keyword, page, size))
+				.build();
+	}
+
+	@GetMapping("/suggest")
+	public ApiResponse<List<String>> suggestSubjects(@RequestParam String keyword) {
+		return ApiResponse.<List<String>>builder()
+				.result(mailSearchService.suggestSubjects(keyword))
 				.build();
 	}
 

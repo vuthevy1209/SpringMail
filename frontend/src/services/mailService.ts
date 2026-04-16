@@ -6,6 +6,11 @@ class MailService {
         return response.data.result;
     }
 
+    async suggestSubjects(keyword: string, signal?: AbortSignal): Promise<string[]> {
+        const response = await api.get(`/mail/suggest?keyword=${encodeURIComponent(keyword)}`, { signal });
+        return response.data.result;
+    }
+
     async fetchEmails(labelIds: string[], page: number = 0, size: number = 20, signal?: AbortSignal) {
         const response = await api.post(`/mail/threads?page=${page}&size=${size}`, { labelIds }, { signal });
         return response.data.result;
