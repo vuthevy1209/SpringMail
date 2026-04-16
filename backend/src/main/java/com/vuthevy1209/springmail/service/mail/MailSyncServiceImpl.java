@@ -4,6 +4,7 @@ import com.vuthevy1209.springmail.converters.MailMessageConverter;
 import com.vuthevy1209.springmail.converters.MailThreadConverter;
 import com.vuthevy1209.springmail.dto.mail.request.FetchOlderRequest;
 import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
+import com.vuthevy1209.springmail.entity.MailElasticSearch;
 import com.vuthevy1209.springmail.entity.MailMessage;
 import com.vuthevy1209.springmail.entity.MailThread;
 import com.vuthevy1209.springmail.entity.User;
@@ -11,6 +12,7 @@ import com.vuthevy1209.springmail.enums.MailLabel;
 import com.vuthevy1209.springmail.enums.SyncStatus;
 import com.vuthevy1209.springmail.exception.AppException;
 import com.vuthevy1209.springmail.exception.ErrorCode;
+import com.vuthevy1209.springmail.repository.MailElasticSearchRepository;
 import com.vuthevy1209.springmail.repository.MailMessageRepository;
 import com.vuthevy1209.springmail.repository.MailThreadRepository;
 import com.vuthevy1209.springmail.repository.UserRepository;
@@ -38,9 +40,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,6 +53,8 @@ public class MailSyncServiceImpl implements MailSyncService {
 	private final UserRepository userRepository;
 	private final MailThreadRepository mailThreadRepository;
 	private final MailMessageRepository mailMessageRepository;
+	private final MailElasticSearchRepository mailElasticSearchRepository;
+
 
 	private final MailThreadConverter mailThreadConverter;
 	private final MailMessageConverter mailMessageConverter;
@@ -81,6 +83,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 		log.info("Executing initial sync for user {}", user.getEmail());
 
 		// Step 1: Capture the current state of the mailbox (anchor)
+		//         With the first, history is the newest
 		GmailProfileDto profile = gmailService.getProfile(accessToken);
 		Long lastHistoryId = profile.getHistoryId();
 
@@ -211,6 +214,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 	private void fetchAndProcessThread(User user, String accessToken, String threadId) throws IOException {
 		// Fetch full thread details
 		GmailThreadDto fullThread = null;
+
 		try {
 			fullThread = gmailService.getThread(accessToken, threadId, FORMAT, null);
 		} catch (IOException e) {
@@ -228,7 +232,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 		}
 
 		String subject = null;
-		java.util.List<String> senderNames = new java.util.ArrayList<>();
+		List<String> senderNames = new ArrayList<>();
 		int messageCount = 0;
 		Long lastMessageTimestamp = null;
 
@@ -248,6 +252,10 @@ public class MailSyncServiceImpl implements MailSyncService {
 			MailMessage mailMessageEntity = mailMessageConverter.toMailMessage(msg);
 			mailMessageEntity.setUserId(user.getId());
 			mailMessageRepository.save(mailMessageEntity);
+
+			// convert and save to elasticsearch (Temporarily using synchronous, will later switch to asynchronous)
+			MailElasticSearch mailElasticSearch = mailMessageConverter.toMailElasticSearch(mailMessageEntity);
+			mailElasticSearchRepository.save(mailElasticSearch);
 		}
 
 		Set<String> threadLabelIds = fullThread.getMessages().stream()

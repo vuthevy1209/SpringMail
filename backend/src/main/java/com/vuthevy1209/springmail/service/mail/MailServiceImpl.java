@@ -130,7 +130,6 @@ public class MailServiceImpl implements MailService {
 		return new ResponseEntity<>(content, headers, HttpStatus.OK);
 	}
 
-
 	@Override
 	@Transactional
 	public MailThreadResponse modifyThread(String threadId, ThreadActionRequest request) throws IOException {

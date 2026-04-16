@@ -32,3 +32,12 @@ spring:
       port: 6379
   mongodb:
     uri: mongodb://root:123456@localhost:27017/SpringMail?authSource=admin&authMechanism=SCRAM-SHA-256
+  elasticsearch:
+    uris: http://localhost:9200
+    username:
+    password:
+
+management:
+  health:
+    elasticsearch:
+      enabled: false

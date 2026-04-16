@@ -72,6 +72,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-mongodb</artifactId>
 		</dependency>
+		<!--	Elasticsearch 	-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+		</dependency>
 		<!--	Feign Client to call api	-->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>

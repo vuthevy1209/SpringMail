@@ -18,5 +18,8 @@ public interface MailThreadRepository extends MongoRepository<MailThread, String
 	@Query("{ 'userId': ?0, 'labelIds': { $all: ?1 } }")
 	Page<MailThread> findByUserIdAndLabelIdsContainsAll(String userId, List<String> labelIds, Pageable pageable);
 
+	Page<MailThread> findByUserIdAndIdIn(String userId, List<String> threadIds, Pageable pageable);
+
 	Optional<MailThread> findByIdAndUserId(String id, String userId);
+
 }

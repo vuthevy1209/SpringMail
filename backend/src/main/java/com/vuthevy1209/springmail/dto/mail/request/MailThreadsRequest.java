@@ -12,5 +12,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class MailThreadsRequest {
+    private String keyword;
     private List<@ValidMailLabel String> labelIds;
 }

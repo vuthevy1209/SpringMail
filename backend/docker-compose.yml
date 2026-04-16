@@ -1,0 +1,37 @@
+name: elk-stack
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.6
+    container_name: elasticsearch-engine
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - cluster.name=es-cluster
+      - node.name=es-node-1
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    networks:
+      - search-net
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.2.6
+    container_name: kibana-dashboard
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch-engine:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - search-net
+
+volumes:
+  es-data:
+
+networks:
+  search-net:
+    driver: bridge

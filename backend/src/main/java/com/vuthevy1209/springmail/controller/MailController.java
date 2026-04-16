@@ -8,6 +8,7 @@ import com.vuthevy1209.springmail.dto.mail.request.SendMailRequest;
 import com.vuthevy1209.springmail.dto.mail.request.ThreadActionRequest;
 import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
+import com.vuthevy1209.springmail.service.mail.MailSearchService;
 import com.vuthevy1209.springmail.service.mail.MailService;
 import com.vuthevy1209.springmail.service.mail.MailSyncService;
 import jakarta.validation.Valid;
@@ -26,13 +27,26 @@ public class MailController {
 
 	private final MailService mailService;
 	private final MailSyncService mailSyncService;
+	private final MailSearchService mailSearchService;
 
+
+	@GetMapping("/search")
+	public ApiResponse<Page<MailThreadResponse>> searchThreads(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size,
+			@ModelAttribute MailThreadsRequest request
+	) throws IOException {
+		return ApiResponse.<Page<MailThreadResponse>>builder()
+				.result(mailSearchService.searchEmails(request, page, size))
+				.build();
+	}
 
 	@PostMapping("/threads")
 	public ApiResponse<Page<MailThreadResponse>> getMailThreads(
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "10") int size,
-			@RequestBody MailThreadsRequest request) throws IOException {
+			@RequestBody MailThreadsRequest request
+	) throws IOException {
 		return ApiResponse.<Page<MailThreadResponse>>builder()
 				.result(mailService.getMailThreads(request, page, size))
 				.build();

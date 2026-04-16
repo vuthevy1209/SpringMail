@@ -25,7 +25,7 @@ import org.springframework.security.web.context.SecurityContextRepository;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-@EnableRedisHttpSession(redisNamespace = "springmail:session", maxInactiveIntervalInSeconds = 3600)
+@EnableRedisHttpSession(redisNamespace = "springmail:session", maxInactiveIntervalInSeconds = 9999999)
 public class SecurityConfig {
 
     private final CustomOidcUserService customOidcUserService;
@@ -77,8 +77,8 @@ public class SecurityConfig {
         authorizationRequestResolver.setAuthorizationRequestCustomizer(
                 customizer -> customizer.additionalParameters(params -> {
                     params.put("access_type", "offline");
-//                    params.put("prompt", "select_account consent");
-                    params.put("prompt", "select_account");
+                    params.put("prompt", "select_account consent");
+//                    params.put("prompt", "select_account");
                 })
         );
 

@@ -2,6 +2,7 @@ package com.vuthevy1209.springmail.converters;
 
 import com.vuthevy1209.springmail.dto.mail.response.MailMessageResponse;
 import com.vuthevy1209.springmail.dto.mail.response.MessageAttachmentResponse;
+import com.vuthevy1209.springmail.entity.MailElasticSearch;
 import com.vuthevy1209.springmail.entity.MailMessage;
 import com.vuthevy1209.springmail.enums.MailLabel;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
@@ -53,6 +54,19 @@ public class MailMessageConverter {
 		return messages.stream()
 				.map(this::toMailMessageResponse)
 				.toList();
+	}
+
+	public MailElasticSearch toMailElasticSearch(MailMessage mailMessage) {
+		return  MailElasticSearch.builder()
+				.id(mailMessage.getId())
+				.threadId(mailMessage.getThreadId())
+				.subject(mailMessage.getSubject())
+				.bodyText(mailMessage.getBodyText())
+				.sender(mailMessage.getFromName())
+				.senderEmail(mailMessage.getFromEmail())
+				.receiver(mailMessage.getToName())
+				.receiverEmail(mailMessage.getToEmail())
+				.build();
 	}
 
 
