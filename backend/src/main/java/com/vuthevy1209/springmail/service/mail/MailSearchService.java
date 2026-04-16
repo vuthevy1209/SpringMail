@@ -9,5 +9,5 @@ import java.util.List;
 
 public interface MailSearchService {
     void save(MailElasticSearch email);
-    Page<MailThreadResponse> searchEmails(MailThreadsRequest request, int page, int size);
+    Page<MailThreadResponse> searchEmails(String keyword, int page, int size);
 }

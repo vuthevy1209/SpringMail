@@ -1,7 +1,12 @@
 import api from './api';
 
 class MailService {
-    async fetchEmails(labelIds: string[], page: number = 0, size: number = 10, signal?: AbortSignal) {
+    async searchEmails(keyword: string, page: number = 0, size: number = 20, signal?: AbortSignal) {
+        const response = await api.get(`/mail/search?keyword=${encodeURIComponent(keyword)}&page=${page}&size=${size}`, { signal });
+        return response.data.result;
+    }
+
+    async fetchEmails(labelIds: string[], page: number = 0, size: number = 20, signal?: AbortSignal) {
         const response = await api.post(`/mail/threads?page=${page}&size=${size}`, { labelIds }, { signal });
         return response.data.result;
     }

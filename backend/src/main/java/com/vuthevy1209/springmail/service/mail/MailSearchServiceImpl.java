@@ -35,7 +35,7 @@ public class MailSearchServiceImpl implements MailSearchService {
     }
 
     @Override
-    public Page<MailThreadResponse> searchEmails(MailThreadsRequest request, int page, int size) {
+    public Page<MailThreadResponse> searchEmails(String keyword, int page, int size) {
         OAuth2User user = SecurityUtils.getCurrentOAuth2User();
         if (user == null) {
             throw new RuntimeException("Current user not found");
@@ -44,7 +44,7 @@ public class MailSearchServiceImpl implements MailSearchService {
         String userId = user.getAttribute("googleId");
 
         List<MailElasticSearch> mailElasticSearches =
-                emailElasticSearchRepository.findBySubjectContainingOrBodyTextContaining(request.getKeyword(), request.getKeyword());
+                emailElasticSearchRepository.searchByKeyword(keyword);
 
         List<String> threadIds = mailElasticSearches.stream()
                 .map(MailElasticSearch::getThreadId)

@@ -13,6 +13,7 @@ import { useThreadDetail } from '../hooks/useThreadDetail';
  */
 export default function MailboxPage({ folder }: { folder: string }) {
 	const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+	const [searchQuery, setSearchQuery] = useState<string>('');
 
 	const {
 		threads,
@@ -26,7 +27,7 @@ export default function MailboxPage({ folder }: { folder: string }) {
 		loadMore,
 		updateThreadLocally,
 		removeThreadLocally
-	} = useMailbox(folder);
+	} = useMailbox(folder, searchQuery);
 
 	const {
 		selectedThreadData,
@@ -51,6 +52,8 @@ export default function MailboxPage({ folder }: { folder: string }) {
 			<InboxList
 				folder={folder}
 				threads={threads}
+				searchQuery={searchQuery}
+				onSearchSubmit={setSearchQuery}
 				isLoading={isLoadingThreads}
 				selectedThreadId={selectedThreadId}
 				onSelectThread={setSelectedThreadId}

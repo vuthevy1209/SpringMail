@@ -1,4 +1,5 @@
 import { Search, Inbox, Users, Tag, Info, Filter } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import ThreadItem from './ThreadItem';
 import InboxListSkeleton from './InboxListSkeleton';
 import { LAYOUT } from '../../constants/layout';
@@ -9,6 +10,8 @@ interface InboxListProps {
     selectedThreadId?: string | null;
     onSelectThread?: (id: string) => void;
     threads?: Thread[];
+    searchQuery?: string;
+    onSearchSubmit?: (query: string) => void;
     isLoading?: boolean;
     activeTab?: string;
     onTabChange?: (tab: string) => void;
@@ -24,6 +27,8 @@ export default function InboxList({
     selectedThreadId, 
     onSelectThread, 
     threads = [], 
+    searchQuery = '',
+    onSearchSubmit,
     isLoading = false, 
     activeTab = 'primary', 
     onTabChange,
@@ -51,6 +56,12 @@ export default function InboxList({
         { id: 'updates',    label: 'Updates',    icon: Info  },
     ];
 
+    const [inputValue, setInputValue] = useState(searchQuery);
+
+    useEffect(() => {
+        setInputValue(searchQuery);
+    }, [searchQuery]);
+
     return (
         <div className={`${LAYOUT.INBOX_LIST_WIDTH} bg-pure-surface ${LAYOUT.COLUMN_BORDER} flex flex-col h-screen`}>
 
@@ -73,9 +84,18 @@ export default function InboxList({
                     </button>
                 </div>
                 <div className="flex items-center bg-canvas-gray px-3 py-2.5 rounded-xl gap-3 border border-transparent transition-all duration-300 focus-within:bg-pure-surface focus-within:border-spring-green/30 focus-within:shadow-xl focus-within:shadow-spring-green/5">
-                    <Search size={18} className="text-muted-steel shrink-0 transition-colors group-focus-within:text-spring-green" />
+                    <button onClick={() => onSearchSubmit && onSearchSubmit(inputValue)} className="bg-transparent border-none p-0 cursor-pointer flex items-center justify-center outline-none">
+                        <Search size={18} className="text-muted-steel shrink-0 transition-colors hover:text-spring-green group-focus-within:text-spring-green" />
+                    </button>
                     <input
                         type="text"
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                onSearchSubmit && onSearchSubmit(inputValue);
+                            }
+                        }}
                         placeholder="Search mail or ask AI..."
                         className="bg-transparent border-none outline-none w-full text-sm font-medium text-charcoal-ink placeholder:text-muted-steel/50"
                     />
@@ -91,9 +111,16 @@ export default function InboxList({
                         return (
                             <button
                                 key={tab.id}
-                                onClick={() => onTabChange && onTabChange(tab.id)}
+                                onClick={() => {
+                                    if (onSearchSubmit) {
+                                        onSearchSubmit('');
+                                    }
+                                    if (onTabChange) {
+                                        onTabChange(tab.id);
+                                    }
+                                }}
                                 className={`flex-1 flex flex-col items-center py-3 bg-transparent cursor-pointer transition-all gap-1 border-b-2 ${
-                                    isActive
+                                    (!searchQuery.trim() && isActive)
                                         ? 'text-spring-green border-spring-green font-semibold'
                                         : 'text-muted-steel border-transparent font-medium'
                                 }`}

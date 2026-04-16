@@ -3,7 +3,7 @@ import mailService from '../services/mailService';
 import { useAuth } from '../context/AuthContext';
 import { Thread } from '../types/mail';
 
-export function useMailbox(folder: string) {
+export function useMailbox(folder: string, searchQuery: string = '') {
     const [threads, setThreads] = useState<Thread[]>([]);
     const [isLoadingThreads, setIsLoadingThreads] = useState<boolean>(false);
     
@@ -61,31 +61,42 @@ export function useMailbox(folder: string) {
             setHasMoreGoogle(true);
 
             try {
-                const labelIds = getLabelIds();
-                let data = await mailService.fetchEmails(labelIds, 0, 20, controller.signal) as any;
-                let fetchedThreads: Thread[] = data.content || [];
-                let localHasMore = !data.last;
-
-                if (fetchedThreads.length === 0) {
-                    try {
-                        const googleData = await mailService.fetchOlderFromGoogle(labelIds, null, null, controller.signal) as any;
-                        if (!controller.signal.aborted) {
-                            setGooglePageToken(googleData.nextPageToken);
-                            setHasMoreGoogle(!!googleData.nextPageToken);
-                        }
-                        
-                        data = await mailService.fetchEmails(labelIds, 0, 20, controller.signal) as any;
-                        fetchedThreads = data.content || [];
-                        localHasMore = !data.last;
-                    } catch (e: any) {
-                         if (e.name === 'CanceledError' || e.name === 'AbortError' || e.message === 'canceled') return;
-                         console.error("Auto fetch older failed:", e);
+                if (searchQuery.trim()) {
+                    // Perform search
+                    const data = await mailService.searchEmails(searchQuery.trim(), 0, 20, controller.signal) as any;
+                    const fetchedThreads: Thread[] = data.content || [];
+                    if (!controller.signal.aborted) {
+                        setThreads(fetchedThreads);
+                        setHasMoreLocal(!data.last);
+                        setHasMoreGoogle(false); // Disable google fetching for search
                     }
-                }
+                } else {
+                    const labelIds = getLabelIds();
+                    let data = await mailService.fetchEmails(labelIds, 0, 20, controller.signal) as any;
+                    let fetchedThreads: Thread[] = data.content || [];
+                    let localHasMore = !data.last;
 
-                if (!controller.signal.aborted) {
-                    setThreads(fetchedThreads);
-                    setHasMoreLocal(localHasMore);
+                    if (fetchedThreads.length === 0) {
+                        try {
+                            const googleData = await mailService.fetchOlderFromGoogle(labelIds, null, null, controller.signal) as any;
+                            if (!controller.signal.aborted) {
+                                setGooglePageToken(googleData.nextPageToken);
+                                setHasMoreGoogle(!!googleData.nextPageToken);
+                            }
+                            
+                            data = await mailService.fetchEmails(labelIds, 0, 20, controller.signal) as any;
+                            fetchedThreads = data.content || [];
+                            localHasMore = !data.last;
+                        } catch (e: any) {
+                             if (e.name === 'CanceledError' || e.name === 'AbortError' || e.message === 'canceled') return;
+                             console.error("Auto fetch older failed:", e);
+                        }
+                    }
+
+                    if (!controller.signal.aborted) {
+                        setThreads(fetchedThreads);
+                        setHasMoreLocal(localHasMore);
+                    }
                 }
             } catch (error: any) {
                 if (error.name === 'CanceledError' || error.name === 'AbortError' || error.message === 'canceled') {
@@ -104,7 +115,7 @@ export function useMailbox(folder: string) {
         return () => {
             controller.abort();
         };
-    }, [folder, activeTab, user?.syncStatus, getLabelIds]);
+    }, [folder, activeTab, user?.syncStatus, getLabelIds, searchQuery]);
 
     const loadMore = async () => {
         if (isLoadingMore) return;
@@ -112,44 +123,60 @@ export function useMailbox(folder: string) {
         const signal = fetchControllerRef.current?.signal;
 
         try {
-            const labelIds = getLabelIds();
+            if (searchQuery.trim()) {
+                if (hasMoreLocal) {
+                    const nextDbPage = Math.floor(threads.length / 20);
+                    const data = await mailService.searchEmails(searchQuery.trim(), nextDbPage, 20, signal) as any;
+                    
+                    if (signal?.aborted) return;
+                    setThreads((prev: Thread[]) => {
+                        const existingIds = new Set(prev.map(t => t.id));
+                        const newItems = (data.content || []).filter((t: Thread) => !existingIds.has(t.id));
+                        return [...prev, ...newItems];
+                    });
+                    setDbPage(nextDbPage);
+                    setHasMoreLocal(!data.last);
+                }
+            } else {
+                const labelIds = getLabelIds();
 
-            if (hasMoreLocal) {
-                const nextDbPage = Math.floor(threads.length / 20);
-                const data = await mailService.fetchEmails(labelIds, nextDbPage, 20, signal) as any;
-                
-                if (signal?.aborted) return;
-                setThreads((prev: Thread[]) => {
+                if (hasMoreLocal) {
+                    const nextDbPage = Math.floor(threads.length / 20);
+                    const data = await mailService.fetchEmails(labelIds, nextDbPage, 20, signal) as any;
+                    
+                    if (signal?.aborted) return;
+                    setThreads((prev: Thread[]) => {
                     const existingIds = new Set(prev.map(t => t.id));
                     const newItems = (data.content || []).filter((t: Thread) => !existingIds.has(t.id));
                     return [...prev, ...newItems];
                 });
                 setDbPage(nextDbPage);
                 setHasMoreLocal(!data.last);
-            } else if (hasMoreGoogle) {
-                const oldestThread = threads.length > 0 ? threads[threads.length - 1] : null;
-                const beforeTimestamp = oldestThread ? oldestThread.lastMessageTimestamp : null;
+                } else if (hasMoreGoogle) {
+                    const oldestThread = threads.length > 0 ? threads[threads.length - 1] : null;
+                    const beforeTimestamp = oldestThread ? oldestThread.lastMessageTimestamp : null;
 
-                const googleData = await mailService.fetchOlderFromGoogle(labelIds, googlePageToken, beforeTimestamp, signal) as any;
-                
-                if (signal?.aborted) return;
-                setGooglePageToken(googleData.nextPageToken);
-                if (!googleData.nextPageToken) {
-                    setHasMoreGoogle(false);
+                    const googleData = await mailService.fetchOlderFromGoogle(labelIds, googlePageToken, beforeTimestamp, signal) as any;
+                    
+                    if (signal?.aborted) return;
+                    setGooglePageToken(googleData.nextPageToken);
+                    if (!googleData.nextPageToken) {
+                        setHasMoreGoogle(false);
+                    }
+
+                    const currentDbPage = Math.floor(threads.length / 20);
+                    const data = await mailService.fetchEmails(labelIds, currentDbPage, 20, signal) as any;
+                    
+                    if (signal?.aborted) return;
+                    setThreads((prev: Thread[]) => {
+                        const existingIds = new Set(prev.map(t => t.id));
+                        const newItems = (data.content || []).filter((t: Thread) => !existingIds.has(t.id));
+                        return [...prev, ...newItems];
+                    });
+                    
+                    setDbPage(currentDbPage);
+                    setHasMoreLocal(!data.last);
                 }
-
-                const currentDbPage = Math.floor(threads.length / 20);
-                const data = await mailService.fetchEmails(labelIds, currentDbPage, 20, signal) as any;
-                
-                if (signal?.aborted) return;
-                setThreads((prev: Thread[]) => {
-                    const existingIds = new Set(prev.map(t => t.id));
-                    const newItems = (data.content || []).filter((t: Thread) => !existingIds.has(t.id));
-                    return [...prev, ...newItems];
-                });
-                
-                setDbPage(currentDbPage);
-                setHasMoreLocal(!data.last);
             }
         } catch (error: any) {
             if (error.name === 'CanceledError' || error.name === 'AbortError' || error.message === 'canceled') return;

@@ -34,10 +34,10 @@ public class MailController {
 	public ApiResponse<Page<MailThreadResponse>> searchThreads(
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "10") int size,
-			@ModelAttribute MailThreadsRequest request
+			@RequestParam String keyword
 	) throws IOException {
 		return ApiResponse.<Page<MailThreadResponse>>builder()
-				.result(mailSearchService.searchEmails(request, page, size))
+				.result(mailSearchService.searchEmails(keyword, page, size))
 				.build();
 	}
 
