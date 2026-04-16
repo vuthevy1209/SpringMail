@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import InboxList from '../components/emails/InboxList';
 import EmailReader from '../components/emails/EmailReader';
 import { useMailbox } from '../hooks/useMailbox';
@@ -14,6 +14,12 @@ import { useThreadDetail } from '../hooks/useThreadDetail';
 export default function MailboxPage({ folder }: { folder: string }) {
 	const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
 	const [searchQuery, setSearchQuery] = useState<string>('');
+
+	// Reset selected thread and search query when switching folders
+	useEffect(() => {
+		setSelectedThreadId(null);
+		setSearchQuery('');
+	}, [folder]);
 
 	const {
 		threads,
