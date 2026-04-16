@@ -279,8 +279,20 @@ public class MailSyncServiceImpl implements MailSyncService {
 		if (oauthUser == null) {
 			throw new RuntimeException("Current user not found");
 		}
-		String userId = oauthUser.getAttribute("googleId");
-		User user = userRepository.findById(userId).orElseThrow();
+		
+		String email = oauthUser.getAttribute("email");
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new RuntimeException("User not found in database: " + email));
+
+		// Chặn Fetch Older nếu đang trong quá trình đồng bộ lần đầu
+		if (user.getSyncStatus() == com.vuthevy1209.springmail.enums.SyncStatus.INITIAL_SYNC_IN_PROGRESS) {
+			log.info("Initial sync in progress, blocking fetch-older for user {}", email);
+			return FetchOlderResponse.builder()
+					.fetchedCount(0)
+					.nextPageToken(request.getPageToken())
+					.build();
+		}
+
 		String accessToken = SecurityUtils.getAccessToken("google");
 		if (accessToken == null) {
 			throw new IOException("Missing access token");
