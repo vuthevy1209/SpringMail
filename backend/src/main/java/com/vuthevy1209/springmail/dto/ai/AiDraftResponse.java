@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.dto;
+package com.vuthevy1209.springmail.dto.ai;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AiSummaryResponse {
-    private String markdownSummary;
+public class AiDraftResponse {
+    private String draftContent;
 }

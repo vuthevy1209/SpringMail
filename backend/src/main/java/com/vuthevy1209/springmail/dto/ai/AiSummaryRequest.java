@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.dto;
+package com.vuthevy1209.springmail.dto.ai;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

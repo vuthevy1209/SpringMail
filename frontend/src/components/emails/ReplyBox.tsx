@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Paperclip, Send, Trash2, Edit2, Eye } from 'lucide-react';
+import { X, Paperclip, Send, Trash2, Edit2, Eye, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { marked } from 'marked';
 import mailService from '../../services/mailService';
+import aiService from '../../services/aiService';
 import toast from 'react-hot-toast';
 
 export default function ReplyBox({ thread, message, type = 'reply', onDiscard, onSent }) {
@@ -16,6 +17,7 @@ export default function ReplyBox({ thread, message, type = 'reply', onDiscard, o
     const [isPreview, setIsPreview] = useState(false);
     const [editorType, setEditorType] = useState('text');
     const [isSending, setIsSending] = useState(false);
+    const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
     const fileInputRef = useRef(null);
 
     useEffect(() => {
@@ -30,7 +32,10 @@ export default function ReplyBox({ thread, message, type = 'reply', onDiscard, o
                     subj = `Re: ${subj}`;
                 }
                 setSubject(subj);
-                setBody(''); // start with empty body or quote
+                setEditorType('markdown');
+                
+                setEditorType('text');
+                setBody('');
             } else if (type === 'forward') {
                 setTo(''); // Need to enter recipient
                 let subj = thread.subject || '';
@@ -66,6 +71,25 @@ export default function ReplyBox({ thread, message, type = 'reply', onDiscard, o
             }
         }
     }, [thread, message, type]);
+
+    const handleGenerateDraft = async () => {
+        try {
+            setIsGeneratingDraft(true);
+            const defaultMsg = thread.messages && thread.messages.length > 0 ? thread.messages[thread.messages.length - 1] : null;
+            const targetMsg = message || defaultMsg;
+            const contentToDraft = targetMsg?.bodyText || targetMsg?.bodyHtml || thread?.snippet || '';
+            
+            if (contentToDraft) {
+                const response = await aiService.generateDraft(thread.id, contentToDraft, editorType);
+                setBody(response.draftContent || '');
+            }
+        } catch (error) {
+            toast.error('Failed to generate AI draft');
+            console.error('Failed to generate AI draft:', error);
+        } finally {
+            setIsGeneratingDraft(false);
+        }
+    };
 
     const handleActualSend = async () => {
         setIsSending(true);
@@ -257,9 +281,9 @@ export default function ReplyBox({ thread, message, type = 'reply', onDiscard, o
                     </div>
                 ) : (
                     <textarea 
-                        autoFocus
+                        disabled={isGeneratingDraft}
                         className={`w-full h-full min-h-[200px] resize-none outline-none text-charcoal-ink text-[14px] bg-transparent ${editorType === 'text' ? '' : 'font-mono'}`}
-                        placeholder={editorType === 'markdown' ? "Write your reply using Markdown..." : editorType === 'html' ? "<html>\n  <body>\n    Write your reply using HTML...\n  </body>\n</html>" : "Type your reply here..."}
+                        placeholder={isGeneratingDraft ? 'Đang tạo nháp AI (vui lòng chờ)...' : editorType === 'markdown' ? 'Write your reply using Markdown...' : editorType === 'html' ? '<html>\n  <body>\n    Write your reply using HTML...\n  </body>\n</html>' : 'Type your reply here...'}
                         value={body}
                         onChange={(e) => setBody(e.target.value)}
                     />
@@ -298,13 +322,27 @@ export default function ReplyBox({ thread, message, type = 'reply', onDiscard, o
 
             {/* Footer Actions */}
             <div className="bg-canvas-gray/30 px-4 py-3 border-t border-whisper flex items-center justify-between shrink-0">
-                <button 
-                    onClick={handleActualSend}
-                    disabled={isSending || !to || attachments.some(a => a.status === 'uploading')}
-                    className="flex items-center gap-2 bg-spring-green hover:bg-spring-green/90 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <span>{isSending ? 'Sending...' : 'Send'}</span>
-                </button>
+                <div className="flex gap-2">
+                    <button 
+                        onClick={handleActualSend}
+                        disabled={isSending || isGeneratingDraft || !to || attachments.some(a => a.status === 'uploading')}
+                        className="flex items-center gap-2 bg-spring-green hover:bg-spring-green/90 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span>{isSending ? 'Sending...' : 'Send'}</span>
+                    </button>
+                    
+                    {type === 'reply' && (
+                        <button
+                            onClick={handleGenerateDraft}
+                            disabled={isSending || isGeneratingDraft || !to}
+                            title="Generate AI Reply Draft"
+                            className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-600 px-4 py-2 rounded-lg font-medium shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Sparkles size={16} />
+                            <span>{isGeneratingDraft ? 'AI is drafting...' : 'AI Gen Draft'}</span>
+                        </button>
+                    )}
+                </div>
                 
                 <div className="flex items-center gap-2 text-muted-steel">
                     <input 

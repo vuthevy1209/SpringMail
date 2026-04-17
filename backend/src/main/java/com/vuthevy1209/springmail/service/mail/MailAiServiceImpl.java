@@ -1,6 +1,7 @@
 package com.vuthevy1209.springmail.service.mail;
 
-import com.vuthevy1209.springmail.dto.AiSummaryResponse;
+import com.vuthevy1209.springmail.dto.ai.AiSummaryResponse;
+import com.vuthevy1209.springmail.dto.ai.AiDraftResponse;
 import com.vuthevy1209.springmail.service.cache.RedisCacheService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -52,6 +53,50 @@ public class MailAiServiceImpl implements MailAiService {
 
         return AiSummaryResponse.builder()
                 .markdownSummary(summary)
+                .build();
+    }
+
+    @Override
+    public AiDraftResponse generateDraft(String threadId, String emailContent, String format) {
+        String cacheKey = "email:draft:" + threadId + ":" + format;
+        
+        // 1. Kiểm tra cache trong Redis
+        String cachedDraft = redisCacheService.getCachedValue(cacheKey);
+        if (cachedDraft != null) {
+            log.info("Return draft from Redis cache for threadId: {} with format: {}", threadId, format);
+            return AiDraftResponse.builder()
+                    .draftContent(cachedDraft)
+                    .build();
+        }
+
+        log.info("Call Gemini AI to generate draft for threadId: {} with format: {}", threadId, format);
+        
+        String formatInstruction = "Kết quả kết xuất phải ở dạng ĐOẠN TEXT BÌNH THƯỜNG (plain text). Không được dùng Markdown hoặc HTML.";
+        if ("markdown".equalsIgnoreCase(format)) {
+            formatInstruction = "Kết quả BẮT BUỘC phải được định dạng bằng văn bản Markdown.";
+        } else if ("html".equalsIgnoreCase(format)) {
+            formatInstruction = "Kết quả BẮT BUỘC phải được định dạng bằng mã HTML. Không bọc trong ```html codeblock, chỉ trả nội dung mã.";
+        }
+
+        // 2. Nếu không có cache, gọi AI model
+        String promptText = "Bạn là một trợ lý ảo chuyên nghiệp trong việc viết email. " +
+                "Dựa vào email nhận được dưới đây (bao gồm nội dung gốc), " +
+                "HÃY ĐÓNG VAI người nhận để phản hồi lại người gửi môt cách lịch sự, chuyên nghiệp, tự nhiên, " +
+                "phản chiếu văn phong của email gốc. " +
+                formatInstruction + " " +
+                "Không cần giải thích thêm, chỉ trả về đúng nội dung draft của email. \n\n" +
+                "Nội dung email nhận được:\n" + emailContent;
+
+        String draft = chatClient.prompt()
+                .user(promptText)
+                .call()
+                .content();
+
+        // 3. Lưu vào Redis với thời gian sống (TTL) cho draft
+        redisCacheService.cacheValue(cacheKey, draft, Duration.ofMinutes(5));
+
+        return AiDraftResponse.builder()
+                .draftContent(draft)
                 .build();
     }
 }
