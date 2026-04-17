@@ -1,7 +1,6 @@
 package com.vuthevy1209.springmail.service.mail;
 
 import com.vuthevy1209.springmail.converters.MailThreadConverter;
-import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
 import com.vuthevy1209.springmail.entity.MailElasticSearch;
 import com.vuthevy1209.springmail.entity.MailThread;
@@ -17,7 +16,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;

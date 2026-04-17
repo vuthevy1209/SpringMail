@@ -5,14 +5,11 @@ import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
 import com.vuthevy1209.springmail.dto.mail.request.SendMailRequest;
 import com.vuthevy1209.springmail.dto.mail.request.ThreadActionRequest;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
-import com.vuthevy1209.springmail.enums.SyncStatus;
 import com.vuthevy1209.springmail.repository.MailMessageRepository;
 import com.vuthevy1209.springmail.repository.MailThreadRepository;
-import com.vuthevy1209.springmail.repository.UserRepository;
 import com.vuthevy1209.springmail.converters.MailThreadConverter;
 import com.vuthevy1209.springmail.entity.MailMessage;
 import com.vuthevy1209.springmail.entity.MailThread;
-import com.vuthevy1209.springmail.entity.User;
 import com.vuthevy1209.springmail.service.gmail.GmailService;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.ModifyThreadRequestDto;
@@ -24,12 +21,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.*;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -49,13 +39,6 @@ public class MailServiceImpl implements MailService {
 
 	private final MailThreadRepository threadRepository;
 	private final MailMessageRepository messageRepository;
-	private final UserRepository userRepository;
-	private final OAuth2AuthorizedClientService authorizedClientService;
-
-	private final MailSyncService mailSyncService;
-
-
-	private final AuthorizedClientServiceOAuth2AuthorizedClientManager backgroundAuthorizedClientManager;
 
 	private final MailThreadConverter mailThreadConverter;
 
