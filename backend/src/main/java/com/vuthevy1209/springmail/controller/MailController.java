@@ -8,9 +8,12 @@ import com.vuthevy1209.springmail.dto.mail.request.SendMailRequest;
 import com.vuthevy1209.springmail.dto.mail.request.ThreadActionRequest;
 import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
+import com.vuthevy1209.springmail.dto.ai.UpcomingEventsResponse;
+import com.vuthevy1209.springmail.service.mail.MailAiService;
 import com.vuthevy1209.springmail.service.mail.MailSearchService;
 import com.vuthevy1209.springmail.service.mail.MailService;
 import com.vuthevy1209.springmail.service.mail.MailSyncService;
+import com.vuthevy1209.springmail.utils.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,6 +32,7 @@ public class MailController {
 	private final MailService mailService;
 	private final MailSyncService mailSyncService;
 	private final MailSearchService mailSearchService;
+	private final MailAiService mailAiService;
 
 
 	@GetMapping("/search")
@@ -39,6 +43,14 @@ public class MailController {
 	) throws IOException {
 		return ApiResponse.<Page<MailThreadResponse>>builder()
 				.result(mailSearchService.searchEmails(keyword, page, size))
+				.build();
+	}
+
+	@GetMapping("/upcoming-events")
+	public ApiResponse<UpcomingEventsResponse> getUpcomingEvents() {
+		String userId = SecurityUtils.getCurrentOAuth2User().getAttribute("email");
+		return ApiResponse.<UpcomingEventsResponse>builder()
+				.result(mailAiService.extractUpcomingEvents(userId))
 				.build();
 	}
 

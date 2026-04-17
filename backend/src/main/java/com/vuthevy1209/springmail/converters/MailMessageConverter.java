@@ -79,6 +79,7 @@ public class MailMessageConverter {
 				.sender(mailMessage.getFromName() != null && !mailMessage.getFromName().isBlank() ? mailMessage.getFromName() : mailMessage.getFromEmail())
 				.content(mailMessage.getBodyText())
 				.dateStr(mailMessage.getDateString())
+				.timestamp(mailMessage.getInternalDate())
 				.build();
 	}
 

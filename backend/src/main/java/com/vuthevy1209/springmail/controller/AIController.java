@@ -9,10 +9,13 @@ import com.vuthevy1209.springmail.service.mail.MailAiService;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.vuthevy1209.springmail.dto.ai.UpcomingEventsResponse;
 
 @RestController
 @RequestMapping("/api/v1/ai")
@@ -30,6 +33,12 @@ public class AIController {
     @PostMapping("/draft")
     public ResponseEntity<AiDraftResponse> generateDraft(@RequestBody AiDraftRequest request) {
         AiDraftResponse response = mailAiService.generateDraft(request.getThreadId(), request.getContent(), request.getFormat());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/upcoming-events")
+    public ResponseEntity<UpcomingEventsResponse> getUpcomingEvents(@RequestParam String userId) {
+        UpcomingEventsResponse response = mailAiService.extractUpcomingEvents(userId);
         return ResponseEntity.ok(response);
     }
 }

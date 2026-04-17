@@ -9,13 +9,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MailVectorDto {
-    private String mailId;
+public class EventDto {
+    private String title;
+    private String date; // Event date/time
+    private String location;
+    private String description;
     private String threadId;
-    private String userId;
-    private String subject;
-    private String sender;
-    private String content; // bodyText
-    private String dateStr;
-    private Long timestamp;
 }
