@@ -16,6 +16,7 @@ import {
     PenSquare,
     Edit,
     Mail,
+    Calendar,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import SpringIcon from "../../assets/spring-icon.svg";
@@ -164,6 +165,33 @@ export default function Sidebar() {
                         </button>
                     );
                 })}
+
+                <div className="my-2 mx-4 border-t border-whisper/80" />
+
+                <button
+                    onClick={() => navigate('/events')}
+                    className={`flex items-center ${isCollapsed ? "justify-center p-0 h-12 w-12 mx-auto" : "justify-between px-4 py-3 w-full"} rounded-xl border transition-all ${
+                            location.pathname.startsWith('/events')
+                            ? "bg-pure-surface text-charcoal-ink font-bold shadow-sm border-whisper/50"
+                            : "bg-transparent text-muted-steel font-medium border-transparent hover:bg-white/60"
+                        }`}
+                >
+                    <div
+                        className={`flex items-center ${isCollapsed ? "justify-center" : "gap-4 overflow-hidden"}`}
+                    >
+                        <div className="relative">
+                            <Calendar
+                                size={22}
+                                className={`shrink-0 ${location.pathname.startsWith('/events') ? "text-spring-green" : ""}`}
+                            />
+                        </div>
+                        {!isCollapsed && (
+                            <span className="text-[15px] transition-all duration-300 whitespace-nowrap overflow-hidden">
+                                Events
+                            </span>
+                        )}
+                    </div>
+                </button>
             </div>
 
             {/* User Profile */}

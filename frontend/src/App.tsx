@@ -6,6 +6,7 @@ import MainLayout from './components/layout/MainLayout';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import SyncModal from './components/auth/SyncModal';
+import EventPage from './pages/EventPage';
 
 export default function App() {
 	return (
@@ -30,6 +31,7 @@ export default function App() {
 						<Route path="/drafts"     element={<MailboxPage folder="drafts"    />} />
 						<Route path="/spam"       element={<MailboxPage folder="spam"      />} />
 						<Route path="/trash"      element={<MailboxPage folder="trash"     />} />
+						<Route path="/events"     element={<EventPage />} />
 					</Route>
 				</Route>
 			</Routes>

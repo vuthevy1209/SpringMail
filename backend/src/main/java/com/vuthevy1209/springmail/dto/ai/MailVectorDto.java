@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MailVectorDto {
     private String mailId;
+    private String threadId;
     private String userId;
     private String subject;
     private String sender;

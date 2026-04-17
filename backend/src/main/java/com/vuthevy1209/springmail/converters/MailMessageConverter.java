@@ -73,6 +73,7 @@ public class MailMessageConverter {
 	public MailVectorDto toMailVectorDto(MailMessage mailMessage) {
 		return MailVectorDto.builder()
 				.mailId(mailMessage.getId())
+				.threadId(mailMessage.getThreadId())
 				.userId(mailMessage.getUserId())
 				.subject(mailMessage.getSubject())
 				.sender(mailMessage.getFromName() != null && !mailMessage.getFromName().isBlank() ? mailMessage.getFromName() : mailMessage.getFromEmail())
