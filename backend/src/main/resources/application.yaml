@@ -26,6 +26,11 @@ spring:
               - email
               - https://www.googleapis.com/auth/gmail.readonly
               - https://www.googleapis.com/auth/gmail.modify
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/email_vector}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: org.postgresql.Driver
   data:
     redis:
       host: localhost
@@ -45,3 +50,15 @@ spring:
         chat:
           options:
             model: ${GOOGLE_GENAI_MODEL}
+        embedding:
+          api-key: ${GOOGLE_GENAI_API_KEY}
+          text:
+            options:
+              model: ${GOOGLE_GENAI_EMBEDDING_MODEL}
+              task-type: RETRIEVAL_DOCUMENT
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        distance-type: COSINE_DISTANCE
+        dimensions: 3072
+        index-type: none

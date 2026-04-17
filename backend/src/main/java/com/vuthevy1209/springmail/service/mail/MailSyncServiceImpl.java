@@ -2,6 +2,7 @@ package com.vuthevy1209.springmail.service.mail;
 
 import com.vuthevy1209.springmail.converters.MailMessageConverter;
 import com.vuthevy1209.springmail.converters.MailThreadConverter;
+import com.vuthevy1209.springmail.dto.ai.MailVectorDto;
 import com.vuthevy1209.springmail.dto.mail.request.FetchOlderRequest;
 import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
 import com.vuthevy1209.springmail.entity.MailElasticSearch;
@@ -49,6 +50,8 @@ import java.util.stream.Collectors;
 public class MailSyncServiceImpl implements MailSyncService {
 
 	private final GmailService gmailService;
+
+    private final MailAiService mailAiService;
 
 	private final UserRepository userRepository;
 	private final MailThreadRepository mailThreadRepository;
@@ -211,68 +214,6 @@ public class MailSyncServiceImpl implements MailSyncService {
 		}
 	}
 
-	private void fetchAndProcessThread(User user, String accessToken, String threadId) throws IOException {
-		// Fetch full thread details
-		GmailThreadDto fullThread = null;
-
-		try {
-			fullThread = gmailService.getThread(accessToken, threadId, FORMAT, null);
-		} catch (IOException e) {
-			if (e.getMessage() != null && e.getMessage().contains("404")) {
-				log.info("Thread {} not found in Gmail. Deleting locally.", threadId);
-				mailThreadRepository.deleteById(threadId);
-				mailMessageRepository.deleteByThreadId(threadId);
-				return;
-			}
-			throw e;
-		}
-
-		if (fullThread == null || fullThread.getMessages() == null) {
-			return;
-		}
-
-		String subject = null;
-		List<String> senderNames = new ArrayList<>();
-		int messageCount = 0;
-		Long lastMessageTimestamp = null;
-
-		for (GmailMessageDto msg : fullThread.getMessages()) {
-			messageCount++;
-			if (subject == null && msg.getSubject() != null && !msg.getSubject().isBlank()) {
-				subject = msg.getSubject();
-			}
-			if (msg.getFromName() != null && !msg.getFromName().isBlank()) {
-				senderNames.add(msg.getFromName());
-			}
-			if (lastMessageTimestamp == null || msg.getInternalDate() > lastMessageTimestamp) {
-				lastMessageTimestamp = msg.getInternalDate();
-			}
-
-			// Convert and save message
-			MailMessage mailMessageEntity = mailMessageConverter.toMailMessage(msg);
-			mailMessageEntity.setUserId(user.getId());
-			mailMessageRepository.save(mailMessageEntity);
-
-			// convert and save to elasticsearch (Temporarily using synchronous, will later switch to asynchronous)
-			MailElasticSearch mailElasticSearch = mailMessageConverter.toMailElasticSearch(mailMessageEntity);
-			mailElasticSearchRepository.save(mailElasticSearch);
-		}
-
-		Set<String> threadLabelIds = fullThread.getMessages().stream()
-				.flatMap(m -> m.getLabelIds().stream())
-				.collect(Collectors.toSet());
-
-		// Convert and save thread
-		MailThread mailThreadEntity = mailThreadConverter.toMailThread(fullThread);
-		mailThreadEntity.setUserId(user.getId());
-		mailThreadEntity.setLabelIds(threadLabelIds);
-		mailThreadEntity.setSubject(subject);
-		mailThreadEntity.setSenderNames(senderNames);
-		mailThreadEntity.setMessageCount(messageCount);
-		mailThreadEntity.setLastMessageTimestamp(lastMessageTimestamp);
-		mailThreadRepository.save(mailThreadEntity);
-	}
-
 	@Override
 	public FetchOlderResponse fetchOlderThreads(FetchOlderRequest request) throws IOException {
 		OAuth2User oauthUser = SecurityUtils.getCurrentOAuth2User();
@@ -380,4 +321,72 @@ public class MailSyncServiceImpl implements MailSyncService {
 				log.error("Failed to sync new emails for user {}", email, e);
 		}
 	}
+
+    	private void fetchAndProcessThread(User user, String accessToken, String threadId) throws IOException {
+		// Fetch full thread details
+		GmailThreadDto fullThread = null;
+
+		try {
+			fullThread = gmailService.getThread(accessToken, threadId, FORMAT, null);
+		} catch (IOException e) {
+			if (e.getMessage() != null && e.getMessage().contains("404")) {
+				log.info("Thread {} not found in Gmail. Deleting locally.", threadId);
+				mailThreadRepository.deleteById(threadId);
+				mailMessageRepository.deleteByThreadId(threadId);
+				return;
+			}
+			throw e;
+		}
+
+		if (fullThread == null || fullThread.getMessages() == null) {
+			return;
+		}
+
+		String subject = null;
+		List<String> senderNames = new ArrayList<>();
+		int messageCount = 0;
+		Long lastMessageTimestamp = null;
+
+		for (GmailMessageDto msg : fullThread.getMessages()) {
+			messageCount++;
+			if (subject == null && msg.getSubject() != null && !msg.getSubject().isBlank()) {
+				subject = msg.getSubject();
+			}
+			if (msg.getFromName() != null && !msg.getFromName().isBlank()) {
+				senderNames.add(msg.getFromName());
+			}
+			if (lastMessageTimestamp == null || msg.getInternalDate() > lastMessageTimestamp) {
+				lastMessageTimestamp = msg.getInternalDate();
+			}
+
+			// save message to mongodb
+			MailMessage mailMessageEntity = mailMessageConverter.toMailMessage(msg);
+			mailMessageEntity.setUserId(user.getId());
+			mailMessageRepository.save(mailMessageEntity);
+
+			// save to elasticsearch (Temporarily using synchronous, will later switch to asynchronous)
+			MailElasticSearch mailElasticSearch = mailMessageConverter.toMailElasticSearch(mailMessageEntity);
+			mailElasticSearchRepository.save(mailElasticSearch);
+
+			// save to vector store
+			MailVectorDto mailVectorDto = mailMessageConverter.toMailVectorDto(mailMessageEntity);
+			mailAiService.saveMailToVectorStore(mailVectorDto);
+
+		}
+
+		Set<String> threadLabelIds = fullThread.getMessages().stream()
+				.flatMap(m -> m.getLabelIds().stream())
+				.collect(Collectors.toSet());
+
+		// Convert and save thread
+		MailThread mailThreadEntity = mailThreadConverter.toMailThread(fullThread);
+		mailThreadEntity.setUserId(user.getId());
+		mailThreadEntity.setLabelIds(threadLabelIds);
+		mailThreadEntity.setSubject(subject);
+		mailThreadEntity.setSenderNames(senderNames);
+		mailThreadEntity.setMessageCount(messageCount);
+		mailThreadEntity.setLastMessageTimestamp(lastMessageTimestamp);
+		mailThreadRepository.save(mailThreadEntity);
+	}
+
 }

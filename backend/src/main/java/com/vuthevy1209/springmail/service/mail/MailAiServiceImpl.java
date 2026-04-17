@@ -2,24 +2,27 @@ package com.vuthevy1209.springmail.service.mail;
 
 import com.vuthevy1209.springmail.dto.ai.AiSummaryResponse;
 import com.vuthevy1209.springmail.dto.ai.AiDraftResponse;
+import com.vuthevy1209.springmail.dto.ai.MailVectorDto;
 import com.vuthevy1209.springmail.service.cache.RedisCacheService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class MailAiServiceImpl implements MailAiService {
     
     private final ChatClient chatClient;
     private final RedisCacheService redisCacheService;
-
-    public MailAiServiceImpl(ChatClient.Builder builder, RedisCacheService redisCacheService) {
-        this.chatClient = builder.build();
-        this.redisCacheService = redisCacheService;
-    }
+    private final VectorStore vectorStore;
 
     @Override
     public AiSummaryResponse summarize(String threadId, String emailContent) {
@@ -98,5 +101,27 @@ public class MailAiServiceImpl implements MailAiService {
         return AiDraftResponse.builder()
                 .draftContent(draft)
                 .build();
+    }
+
+    @Override
+    public void saveMailToVectorStore(MailVectorDto mailVectorDto) {
+        String contentToEmbed = String.format("Người gửi (From): %s\nTiêu đề (Subject): %s\nThời gian (Date): %s\nNội dung (Content): %s",
+                mailVectorDto.getSender(), mailVectorDto.getSubject(), mailVectorDto.getDateStr(), mailVectorDto.getContent());
+
+        Map<String, Object> metadata = Map.of(
+                "mailId", mailVectorDto.getMailId(),
+                "userId", mailVectorDto.getUserId(),
+                "subject", mailVectorDto.getSubject(),
+                "sender", mailVectorDto.getSender(),
+                "date", mailVectorDto.getDateStr()
+        );
+
+        Document document = new Document(contentToEmbed, metadata);
+        vectorStore.add(List.of(document));
+    }
+
+    @Override
+    public void deleteMailFromVectorStore(String mailId) {
+        vectorStore.delete(List.of(mailId));
     }
 }

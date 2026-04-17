@@ -1,5 +1,6 @@
 package com.vuthevy1209.springmail.converters;
 
+import com.vuthevy1209.springmail.dto.ai.MailVectorDto;
 import com.vuthevy1209.springmail.dto.mail.response.MailMessageResponse;
 import com.vuthevy1209.springmail.dto.mail.response.MessageAttachmentResponse;
 import com.vuthevy1209.springmail.entity.MailElasticSearch;
@@ -69,5 +70,15 @@ public class MailMessageConverter {
 				.build();
 	}
 
+	public MailVectorDto toMailVectorDto(MailMessage mailMessage) {
+		return MailVectorDto.builder()
+				.mailId(mailMessage.getId())
+				.userId(mailMessage.getUserId())
+				.subject(mailMessage.getSubject())
+				.sender(mailMessage.getFromName() != null && !mailMessage.getFromName().isBlank() ? mailMessage.getFromName() : mailMessage.getFromEmail())
+				.content(mailMessage.getBodyText())
+				.dateStr(mailMessage.getDateString())
+				.build();
+	}
 
 }
