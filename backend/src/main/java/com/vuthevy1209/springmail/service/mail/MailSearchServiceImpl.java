@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -69,10 +71,13 @@ public class MailSearchServiceImpl implements MailSearchService {
             return List.of();
         }
         
+        String lowerKeyword = keyword.toLowerCase();
         List<MailElasticSearch> results = emailElasticSearchRepository.suggestSubjects(keyword);
         
         return results.stream()
-                .map(MailElasticSearch::getSubject)
+                .flatMap(es -> Stream.of(es.getSubject(), es.getSender(), es.getSenderEmail()))
+                .filter(Objects::nonNull)
+                .filter(text -> text.toLowerCase().contains(lowerKeyword))
                 .distinct()
                 .limit(8)
                 .toList();

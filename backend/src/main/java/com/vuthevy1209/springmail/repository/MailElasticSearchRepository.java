@@ -34,11 +34,32 @@ import java.util.List;
 
         @Query("""
             {
-                "match_phrase_prefix": {
-                    "subject": {
-                        "query": "?0",
-                        "max_expansions": 10
-                    }
+                "bool": {
+                    "should": [
+                        {
+                            "match_phrase_prefix": {
+                                "subject": {
+                                    "query": "?0",
+                                    "max_expansions": 10
+                                }
+                            }
+                        },
+                        {
+                            "match_phrase_prefix": {
+                                "sender": {
+                                    "query": "?0",
+                                    "max_expansions": 10
+                                }
+                            }
+                        },
+                        {
+                            "wildcard": {
+                                "senderEmail": {
+                                    "value": "*?0*"
+                                }
+                            }
+                        }
+                    ]
                 }
             }
         """)

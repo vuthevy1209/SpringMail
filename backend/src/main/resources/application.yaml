@@ -36,8 +36,12 @@ spring:
     uris: http://localhost:9200
     username:
     password:
-
-management:
-  health:
-    elasticsearch:
-      enabled: false
+  ai:
+    model:
+      chat: ${SPRING_AI_MODEL_CHAT:google-genai}
+    google:
+      genai:
+        api-key: ${GOOGLE_GENAI_API_KEY}
+        chat:
+          options:
+            model: ${GOOGLE_GENAI_MODEL}

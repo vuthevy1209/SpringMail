@@ -19,6 +19,7 @@ import {
     RefreshCw,
     Wand2,
 } from "lucide-react";
+import aiService from "../../services/aiService";
 import mailService from "../../services/mailService";
 import EmailBody from "./EmailBody";
 import EmailReaderSkeleton from "./EmailReaderSkeleton";
@@ -78,22 +79,23 @@ export default function EmailReader({ folder, selectedThread, isLoading, onThrea
         }
     }, [selectedThread?.id]);
 
-    const handleSummarize = () => {
+    const handleSummarize = async () => {
+        if (!selectedThread || !selectedThread.messages) return;
         setIsSummarizing(true);
-        // FIXME: Replace with real API call later
-        setTimeout(() => {
-            setSummary(`### Tóm tắt nội dung chính
-
-Dưới đây là các điểm quan trọng liên quan đến cuộc thi trực tuyến sắp tới:
-
-* **Trang phục:** Lịch sự, phù hợp với môi trường thi cử.
-* **Cú pháp Zoom:** Đăng nhập 1 tài khoản/1 thiết bị theo cú pháp: \`GIP2026_SBD\` *(Ví dụ: GIP2026_001)*.
-* **Thiết bị:** Ưu tiên **Laptop** và bật camera xuyên suốt *(không yêu cầu bật mic)*.
-* **Không gian thi:** Yên tĩnh, ánh sáng đầy đủ, mạng ổn định. BTC có thể yêu cầu chụp hình điểm danh xác thực.
-
-> **Lưu ý:** Mọi thắc mắc cần phản hồi lại email này **trước 19h00 ngày 01/04/2026**. Quá hạn BTC sẽ không tiếp nhận.`);
+        try {
+            // Lấy nội dung text của tất cả các email trong thread để tóm tắt
+            const threadContent = selectedThread.messages
+                .map((msg: any) => msg.bodyText || msg.snippet || "")
+                .join("\n\n---\n\n");
+                
+            const response = await aiService.summarizeEmail(selectedThread.id, threadContent);
+            setSummary(response.markdownSummary);
+        } catch (error) {
+            console.error("Failed to summarize email:", error);
+            // Optional: Handle error UI
+        } finally {
             setIsSummarizing(false);
-        }, 1500); // Giả lập độ trễ API AI
+        }
     };
 
     if (isLoading) {
