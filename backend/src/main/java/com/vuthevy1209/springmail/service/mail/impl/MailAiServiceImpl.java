@@ -1,9 +1,10 @@
-package com.vuthevy1209.springmail.service.mail;
+package com.vuthevy1209.springmail.service.mail.impl;
 
 import com.vuthevy1209.springmail.dto.ai.AiSummaryResponse;
 import com.vuthevy1209.springmail.dto.ai.AiDraftResponse;
 import com.vuthevy1209.springmail.dto.ai.MailVectorDto;
 import com.vuthevy1209.springmail.service.cache.RedisCacheService;
+import com.vuthevy1209.springmail.service.mail.MailAiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;

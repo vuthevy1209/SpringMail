@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.service.mail;
+package com.vuthevy1209.springmail.service.mail.impl;
 
 import com.vuthevy1209.springmail.dto.mail.request.AttachmentRequest;
 import com.vuthevy1209.springmail.dto.mail.request.MailThreadsRequest;
@@ -13,6 +13,7 @@ import com.vuthevy1209.springmail.entity.MailThread;
 import com.vuthevy1209.springmail.service.gmail.GmailService;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.ModifyThreadRequestDto;
+import com.vuthevy1209.springmail.service.mail.MailService;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

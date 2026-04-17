@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.service.mail;
+package com.vuthevy1209.springmail.service.mail.impl;
 
 import com.vuthevy1209.springmail.converters.MailThreadConverter;
 import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
@@ -6,6 +6,7 @@ import com.vuthevy1209.springmail.entity.MailElasticSearch;
 import com.vuthevy1209.springmail.entity.MailThread;
 import com.vuthevy1209.springmail.repository.MailElasticSearchRepository;
 import com.vuthevy1209.springmail.repository.MailThreadRepository;
+import com.vuthevy1209.springmail.service.mail.MailSearchService;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.service.mail;
+package com.vuthevy1209.springmail.service.mail.impl;
 
 import com.vuthevy1209.springmail.converters.MailMessageConverter;
 import com.vuthevy1209.springmail.converters.MailThreadConverter;
@@ -28,6 +28,8 @@ import com.vuthevy1209.springmail.service.gmail.dto.message.GmailMessageDto;
 import com.vuthevy1209.springmail.service.gmail.dto.profile.GmailProfileDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
+import com.vuthevy1209.springmail.service.mail.MailAiService;
+import com.vuthevy1209.springmail.service.mail.MailSyncService;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
