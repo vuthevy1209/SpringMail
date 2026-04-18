@@ -15,26 +15,38 @@ import java.util.List;
 
         @Query("""
             {
-                "multi_match": {
-                    "query": "?0",
-                    "fields": [
-                        "subject",
-                        "bodyText",
-                        "sender^2",
-                        "senderEmail^2",
-                        "receiver^2",
-                        "receiverEmail^2"
-                    ],
-                    "type": "cross_fields",
-                    "operator": "and"
+                "bool": {
+                    "must": [
+                        {
+                            "term": { "userId": "?1" }
+                        },
+                        {
+                            "multi_match": {
+                                "query": "?0",
+                                "fields": [
+                                    "subject",
+                                    "bodyText",
+                                    "sender^2",
+                                    "senderEmail^2",
+                                    "receiver^2",
+                                    "receiverEmail^2"
+                                ],
+                                "type": "cross_fields",
+                                "operator": "and"
+                            }
+                        }
+                    ]
                 }
             }
             """)
-        List<MailElasticSearch> searchByKeyword(String keyword);
+        List<MailElasticSearch> searchByKeyword(String keyword, String userId);
 
         @Query("""
             {
                 "bool": {
+                    "must": [
+                        { "term": { "userId": "?1" } }
+                    ],
                     "should": [
                         {
                             "match_phrase_prefix": {
@@ -59,9 +71,47 @@ import java.util.List;
                                 }
                             }
                         }
-                    ]
+                    ],
+                    "minimum_should_match": 1
                 }
             }
         """)
-        List<MailElasticSearch> suggestSubjects(String prefix);
+        List<MailElasticSearch> suggestSubjects(String prefix, String userId);
+
+        @Query("""
+        {
+          "script_score": {
+            "query": {
+              "bool": {
+                "must": [
+                  { "term": { "userId": "?1" } }
+                ],
+                "should": [
+                  {
+                    "multi_match": {
+                      "query": "?0",
+                      "fields": [
+                        "subject^2",
+                        "bodyText",
+                        "sender^1.5",
+                        "senderEmail^1.5",
+                        "receiver",
+                        "receiverEmail"
+                      ],
+                      "type": "best_fields"
+                    }
+                  }
+                ]
+              }
+            },
+            "script": {
+              "source": "_score + (doc.containsKey('contentVector') && doc['contentVector'].size() > 0 ? (cosineSimilarity(params.query_vector, 'contentVector') + 1.0) * 5.0 : 0.0)",
+              "params": {
+                "query_vector": ?2
+              }
+            }
+          }
+        }
+    """)
+    List<MailElasticSearch> searchHybrid(String keyword, String userId, List<Double> queryVector);
 }

@@ -1,4 +1,4 @@
-package com.vuthevy1209.springmail.event;
+package com.vuthevy1209.springmail.event.listener;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vuthevy1209.springmail.service.mail.MailSyncService;
@@ -17,7 +17,7 @@ import java.util.Base64;
 @RestController
 @RequestMapping("/webhook")
 @RequiredArgsConstructor
-public class GmailWebhookController {
+public class GmailWebhookEventListener {
 
     private final MailSyncService mailSyncService;
     private final ObjectMapper objectMapper = new ObjectMapper();

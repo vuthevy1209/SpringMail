@@ -46,6 +46,17 @@ public class MailController {
 				.build();
 	}
 
+//	@GetMapping("/search")
+//	public ApiResponse<Page<MailThreadResponse>> searchThreadsHybrid(
+//			@RequestParam(defaultValue = "0") int page,
+//			@RequestParam(defaultValue = "10") int size,
+//			@RequestParam String keyword
+//	) throws IOException {
+//		return ApiResponse.<Page<MailThreadResponse>>builder()
+//				.result(mailSearchService.searchEmailsHybrid(keyword, page, size))
+//				.build();
+//	}
+
 	@GetMapping("/upcoming-events")
 	public ApiResponse<UpcomingEventsResponse> getUpcomingEvents() {
 		String userId = SecurityUtils.getCurrentOAuth2User().getAttribute("email");

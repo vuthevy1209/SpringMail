@@ -58,6 +58,15 @@ public class SecurityUtils {
         return null;
     }
 
+    public static String getAuthenticatedUserId() {
+        OAuth2User user = getCurrentOAuth2User();
+        if (user != null) {
+            Object googleId = user.getAttribute("googleId");
+            return googleId != null ? googleId.toString() : null;
+        }
+        return null;
+    }
+
     public static void clearContext() {
         SecurityContextHolder.clearContext();
     }

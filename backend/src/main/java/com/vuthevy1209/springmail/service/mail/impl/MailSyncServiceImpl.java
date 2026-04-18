@@ -2,7 +2,6 @@ package com.vuthevy1209.springmail.service.mail.impl;
 
 import com.vuthevy1209.springmail.converters.MailMessageConverter;
 import com.vuthevy1209.springmail.converters.MailThreadConverter;
-import com.vuthevy1209.springmail.dto.ai.MailVectorDto;
 import com.vuthevy1209.springmail.dto.mail.request.FetchOlderRequest;
 import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
 import com.vuthevy1209.springmail.entity.MailElasticSearch;
@@ -28,7 +27,6 @@ import com.vuthevy1209.springmail.service.gmail.dto.message.GmailMessageDto;
 import com.vuthevy1209.springmail.service.gmail.dto.profile.GmailProfileDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailListThreadsResponseDto;
 import com.vuthevy1209.springmail.service.gmail.dto.thread.GmailThreadDto;
-import com.vuthevy1209.springmail.service.mail.MailAiService;
 import com.vuthevy1209.springmail.service.mail.MailSyncService;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -52,8 +50,6 @@ import java.util.stream.Collectors;
 public class MailSyncServiceImpl implements MailSyncService {
 
 	private final GmailService gmailService;
-
-    private final MailAiService mailAiService;
 
 	private final UserRepository userRepository;
 	private final MailThreadRepository mailThreadRepository;
@@ -367,13 +363,10 @@ public class MailSyncServiceImpl implements MailSyncService {
 			mailMessageRepository.save(mailMessageEntity);
 
 			// save to elasticsearch (Temporarily using synchronous, will later switch to asynchronous)
-			MailElasticSearch mailElasticSearch = mailMessageConverter.toMailElasticSearch(mailMessageEntity);
-			mailElasticSearchRepository.save(mailElasticSearch);
-
-			// save to vector store
-			MailVectorDto mailVectorDto = mailMessageConverter.toMailVectorDto(mailMessageEntity);
-			mailAiService.saveMailToVectorStore(mailVectorDto);
-
+			if (!mailElasticSearchRepository.existsById(mailMessageEntity.getId())) {
+				MailElasticSearch mailElasticSearch = mailMessageConverter.toMailElasticSearch(mailMessageEntity);
+				mailElasticSearchRepository.save(mailElasticSearch);
+			}
 		}
 
 		Set<String> threadLabelIds = fullThread.getMessages().stream()

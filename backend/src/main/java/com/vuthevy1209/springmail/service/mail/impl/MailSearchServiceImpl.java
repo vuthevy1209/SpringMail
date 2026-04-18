@@ -6,72 +6,93 @@ import com.vuthevy1209.springmail.entity.MailElasticSearch;
 import com.vuthevy1209.springmail.entity.MailThread;
 import com.vuthevy1209.springmail.repository.MailElasticSearchRepository;
 import com.vuthevy1209.springmail.repository.MailThreadRepository;
+import com.vuthevy1209.springmail.service.embedding.EmbeddingService;
 import com.vuthevy1209.springmail.service.mail.MailSearchService;
-import com.vuthevy1209.springmail.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import com.vuthevy1209.springmail.utils.SecurityUtils;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Stream;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
+@Slf4j
 public class MailSearchServiceImpl implements MailSearchService {
-    private final MailElasticSearchRepository emailElasticSearchRepository;
+
+    private final MailElasticSearchRepository mailElasticSearchRepository;
     private final MailThreadRepository mailThreadRepository;
-
     private final MailThreadConverter mailThreadConverter;
-
-    @Override
-    public void save(MailElasticSearch email) {
-        emailElasticSearchRepository.save(email);
-    }
+    private final EmbeddingService embeddingService;
 
     @Override
     public Page<MailThreadResponse> searchEmails(String keyword, int page, int size) {
-        OAuth2User user = SecurityUtils.getCurrentOAuth2User();
-        if (user == null) {
+        String userId = SecurityUtils.getAuthenticatedUserId();
+        if (userId == null) {
             throw new RuntimeException("Current user not found");
         }
 
-        String userId = user.getAttribute("googleId");
-
-        List<MailElasticSearch> mailElasticSearches =
-                emailElasticSearchRepository.searchByKeyword(keyword);
-
-        List<String> threadIds = mailElasticSearches.stream()
+        // search in elastic
+        List<MailElasticSearch> results = mailElasticSearchRepository.searchByKeyword(keyword, userId);
+        List<String> threadIds = results.stream()
                 .map(MailElasticSearch::getThreadId)
-                .distinct()
                 .toList();
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("lastMessageTimestamp").descending());
-        
-        if (threadIds.isEmpty()) {
-            return Page.empty(pageable);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<MailThread> mailThreads = mailThreadRepository.findByIdIn(threadIds, pageable);
+
+        // convert to mail thread response list.
+        return mailThreads.map(mailThreadConverter::toMailThreadResponse);
+    }
+
+    @Override
+    public Page<MailThreadResponse> searchEmailsHybrid(String keyword, int page, int size) {
+        String userId = SecurityUtils.getAuthenticatedUserId();
+        if (userId == null) {
+            throw new RuntimeException("Current user not found");
         }
 
-        Page<MailThread> threads = mailThreadRepository.findByUserIdAndIdIn(userId, threadIds, pageable);
+        try {
+            List<Double> vector = embeddingService.embed(keyword);
+            if (vector == null || vector.isEmpty()) {
+                log.warn("Embedding failed for keyword: {}, falling back to keyword search", keyword);
+                return searchEmails(keyword, page, size);
+            }
 
-        // Map trả về Page<MailThreadResponse>
-        return threads.map(mailThreadConverter::toMailThreadResponse);
+            List<MailElasticSearch> results = mailElasticSearchRepository.searchHybrid(keyword, userId, vector);
+
+            List<String> threadIds = results.stream()
+                    .map(MailElasticSearch::getThreadId)
+                    .toList();
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<MailThread> mailThreads = mailThreadRepository.findByIdIn(threadIds, pageable);
+
+            // convert to mail thread response list.
+            return mailThreads.map(mailThreadConverter::toMailThreadResponse);
+        } catch (Exception e) {
+            throw new RuntimeException("The system is in error");
+        }
     }
+
 
     @Override
     public List<String> suggestSubjects(String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) {
             return List.of();
         }
+
+        String userId = SecurityUtils.getAuthenticatedUserId();
+        if (userId == null) {
+            throw new RuntimeException("Current user not found");
+        }
         
         String lowerKeyword = keyword.toLowerCase();
-        List<MailElasticSearch> results = emailElasticSearchRepository.suggestSubjects(keyword);
+        List<MailElasticSearch> results = mailElasticSearchRepository.suggestSubjects(keyword, userId);
         
         return results.stream()
                 .flatMap(es -> Stream.of(es.getSubject(), es.getSender(), es.getSenderEmail()))

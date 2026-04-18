@@ -1,11 +1,11 @@
 package com.vuthevy1209.springmail.converters;
 
-import com.vuthevy1209.springmail.dto.ai.MailVectorDto;
 import com.vuthevy1209.springmail.dto.mail.response.MailMessageResponse;
 import com.vuthevy1209.springmail.dto.mail.response.MessageAttachmentResponse;
 import com.vuthevy1209.springmail.entity.MailElasticSearch;
 import com.vuthevy1209.springmail.entity.MailMessage;
 import com.vuthevy1209.springmail.enums.MailLabel;
+import com.vuthevy1209.springmail.service.embedding.EmbeddingService;
 import com.vuthevy1209.springmail.service.gmail.dto.attachment.GmailAttachmentDto;
 import com.vuthevy1209.springmail.service.gmail.dto.message.GmailMessageDto;
 import jakarta.annotation.PostConstruct;
@@ -20,6 +20,8 @@ import java.util.List;
 public class MailMessageConverter {
 
 	private final ModelMapper modelMapper;
+
+	private final EmbeddingService embeddingService;
 
 	@PostConstruct
 	public void init() {
@@ -58,27 +60,28 @@ public class MailMessageConverter {
 	}
 
 	public MailElasticSearch toMailElasticSearch(MailMessage mailMessage) {
+		String bodyText = mailMessage.getBodyText() != null && !mailMessage.getBodyText().isEmpty()
+				? mailMessage.getBodyText()
+				: mailMessage.getBodyHtml();
+
+		String content = " Subject: " + mailMessage.getSubject() + "\n"
+				+ " Body: " + bodyText + "\n";
+
+		List<Double> contentVector = embeddingService.embed(content);
+
+
 		return  MailElasticSearch.builder()
 				.id(mailMessage.getId())
+				.userId(mailMessage.getUserId())
 				.threadId(mailMessage.getThreadId())
 				.subject(mailMessage.getSubject())
-				.bodyText(mailMessage.getBodyText())
+				.bodyText(bodyText)
 				.sender(mailMessage.getFromName())
 				.senderEmail(mailMessage.getFromEmail())
 				.receiver(mailMessage.getToName())
 				.receiverEmail(mailMessage.getToEmail())
-				.build();
-	}
-
-	public MailVectorDto toMailVectorDto(MailMessage mailMessage) {
-		return MailVectorDto.builder()
-				.mailId(mailMessage.getId())
-				.threadId(mailMessage.getThreadId())
-				.userId(mailMessage.getUserId())
-				.subject(mailMessage.getSubject())
-				.sender(mailMessage.getFromName() != null && !mailMessage.getFromName().isBlank() ? mailMessage.getFromName() : mailMessage.getFromEmail())
-				.content(mailMessage.getBodyText())
-				.dateStr(mailMessage.getDateString())
+				.contentVector(contentVector)
+				.labelIds(mailMessage.getLabelIds())
 				.timestamp(mailMessage.getInternalDate())
 				.build();
 	}

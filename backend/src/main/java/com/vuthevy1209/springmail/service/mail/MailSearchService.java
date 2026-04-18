@@ -7,7 +7,7 @@ import org.springframework.data.domain.Page;
 import java.util.List;
 
 public interface MailSearchService {
-    void save(MailElasticSearch email);
     Page<MailThreadResponse> searchEmails(String keyword, int page, int size);
+    Page<MailThreadResponse> searchEmailsHybrid(String keyword, int page, int size);
     List<String> suggestSubjects(String keyword);
 }

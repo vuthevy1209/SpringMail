@@ -6,6 +6,9 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
+import java.util.List;
+import java.util.Set;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,9 +21,12 @@ public class MailElasticSearch {
     private String id; // email ID
 
     @Field(type = FieldType.Keyword)
+    private String userId;
+
+    @Field(type = FieldType.Keyword)
     private String threadId;
 
-    @Field(type = FieldType.Text, analyzer = "autocomplete_analyzer", searchAnalyzer = "standard")
+    @Field(type = FieldType.Text, analyzer = "standard", searchAnalyzer = "standard")
     private String subject;
 
     @Field(type = FieldType.Text, analyzer = "standard")
@@ -37,4 +43,13 @@ public class MailElasticSearch {
 
     @Field(type = FieldType.Keyword)
     private String receiverEmail;
+
+    @Field(type = FieldType.Dense_Vector, dims = 768)
+    private List<Double> contentVector;
+
+    @Field(type = FieldType.Keyword)
+    private Set<String> labelIds;
+
+    @Field(type = FieldType.Date)
+    private Long timestamp;
 }
