@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.vuthevy1209.springmail.dto.ai.UpcomingEventsResponse;
 
 @RestController
-@RequestMapping("/api/v1/ai")
+@RequestMapping("/ai")
 @RequiredArgsConstructor
 public class AIController {
 
@@ -37,8 +37,8 @@ public class AIController {
     }
 
     @GetMapping("/upcoming-events")
-    public ResponseEntity<UpcomingEventsResponse> getUpcomingEvents(@RequestParam String userId) {
-        UpcomingEventsResponse response = mailAiService.extractUpcomingEvents(userId);
+    public ResponseEntity<UpcomingEventsResponse> getUpcomingEvents() {
+        UpcomingEventsResponse response = mailAiService.extractUpcomingEvents();
         return ResponseEntity.ok(response);
     }
 }

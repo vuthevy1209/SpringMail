@@ -12,8 +12,8 @@ import java.util.List;
 public interface EmbeddingFeignClient {
 
     @PostMapping("/embed")
-    List<Double> embed(@RequestBody TextRequest request);
+    List<Float> embed(@RequestBody TextRequest request);
 
     @PostMapping("/embed/batch")
-    List<List<Double>> embedBatch(@RequestBody BatchTextRequest request);
+    List<List<Float>> embedBatch(@RequestBody BatchTextRequest request);
 }

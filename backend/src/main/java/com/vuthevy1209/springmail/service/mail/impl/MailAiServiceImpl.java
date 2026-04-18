@@ -2,14 +2,20 @@ package com.vuthevy1209.springmail.service.mail.impl;
 
 import com.vuthevy1209.springmail.dto.ai.AiSummaryResponse;
 import com.vuthevy1209.springmail.dto.ai.AiDraftResponse;
+import com.vuthevy1209.springmail.entity.MailChunkElasticSearch;
+import com.vuthevy1209.springmail.repository.MailChunkElasticSearchRepository;
 import com.vuthevy1209.springmail.service.cache.RedisCacheService;
+import com.vuthevy1209.springmail.service.embedding.EmbeddingService;
 import com.vuthevy1209.springmail.service.mail.MailAiService;
+import com.vuthevy1209.springmail.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import com.vuthevy1209.springmail.dto.ai.UpcomingEventsResponse;
 
@@ -20,6 +26,9 @@ public class MailAiServiceImpl implements MailAiService {
     
     private final ChatClient chatClient;
     private final RedisCacheService redisCacheService;
+    private final EmbeddingService embeddingService;
+
+    private final MailChunkElasticSearchRepository mailChunkElasticSearchRepository;
 
     @Override
     public AiSummaryResponse summarize(String threadId, String emailContent) {
@@ -101,7 +110,19 @@ public class MailAiServiceImpl implements MailAiService {
     }
 
     @Override
-    public UpcomingEventsResponse extractUpcomingEvents(String userId) {
+    public UpcomingEventsResponse extractUpcomingEvents() {
+        String userId = "118026135008790142027";
+
+        String query = "Nội dung liên quan đến lịch hẹn như phỏng vấn, lịch kiểm tra, bài test, bạn bè rủ đi chơi, và có thời gian địa điểm rõ ràng";
+        List<Float> contentVector = embeddingService.embed(query);
+
+        List<MailChunkElasticSearch> mailChunkElasticSearchList = mailChunkElasticSearchRepository.getChunksByContentVector(contentVector, userId);
+
+        String context = mailChunkElasticSearchList.stream()
+                .map(MailChunkElasticSearch::getChunkText)
+                .collect(Collectors.joining("\n\n"));
+
+        System.out.println(context);
         return null;
     }
 }

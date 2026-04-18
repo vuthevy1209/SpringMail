@@ -83,9 +83,12 @@ public class MailMessageConverter {
 
 	public List<MailChunkElasticSearch> toMailChunksElasticSearch(MailMessage mailMessage) {
 		// 1) Normalize input text
-		String bodyText = (mailMessage.getBodyText() != null && !mailMessage.getBodyText().isBlank())
+		String rawBodyText = (mailMessage.getBodyText() != null && !mailMessage.getBodyText().isBlank())
 				? mailMessage.getBodyText()
 				: (mailMessage.getBodyHtml() != null ? mailMessage.getBodyHtml() : "");
+
+		// Pre-process body text to remove noisy line breaks and excessive whitespace
+		String bodyText = cleanEmailText(rawBodyText);
 
 		String subject = mailMessage.getSubject() != null ? mailMessage.getSubject() : "";
 
@@ -102,8 +105,8 @@ public class MailMessageConverter {
 
 		// 3) Split into chunks
 		TokenTextSplitter splitter = TokenTextSplitter.builder()
-				.withChunkSize(300)
-				.withMinChunkSizeChars(100)
+				.withChunkSize(150)
+				.withMinChunkSizeChars(50)
 				.withMinChunkLengthToEmbed(20)
 				.withMaxNumChunks(1000)
 				.withKeepSeparator(true)
@@ -122,7 +125,7 @@ public class MailMessageConverter {
 		}
 
 		// 5) Embed per chunk \(batch\)
-		List<List<Double>> vectors = embeddingService.embedBatch(chunkTexts);
+		List<List<Float>> vectors = embeddingService.embedBatch(chunkTexts);
 
 		// 6) Map each chunk to Elasticsearch entity
 		List<MailChunkElasticSearch> results = new ArrayList<>(chunkTexts.size());
@@ -143,4 +146,19 @@ public class MailMessageConverter {
 		return results;
 	}
 
+	private String cleanEmailText(String text) {
+		if (text == null) {
+			return "";
+		}
+		// Remove \r
+		text = text.replace("\r", "");
+		// Remove 3+ consecutive newlines, keep at most 2
+		text = text.replaceAll("\n{3,}", "\n\n");
+		// Fix annoying line wraps (single newlines not followed by bullet points)
+		text = text.replaceAll("(?<!\n)\n(?!\n)(?![ \t]*[-*0-9v•])", " ");
+		// Collapse multiple spaces/tabs into a single space
+		text = text.replaceAll("[ \t]{2,}", " ");
+		// Trim the final text
+		return text.trim();
+	}
 }

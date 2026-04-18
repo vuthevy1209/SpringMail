@@ -9,6 +9,6 @@ public interface MailAiService {
     
     AiDraftResponse generateDraft(String threadId, String emailContent, String format);
     
-    UpcomingEventsResponse extractUpcomingEvents(String userId);
+    UpcomingEventsResponse extractUpcomingEvents();
 
 }

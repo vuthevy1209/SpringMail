@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .securityContext(context -> context
                         .securityContextRepository(securityContextRepository()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/oauth2/**", "/auth/logout", "/test/gmail/**", "/webhook/gmail").permitAll()
+                        .requestMatchers("/login", "/oauth2/**", "/auth/logout", "/test/gmail/**", "/webhook/gmail", "/ai/*").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         .authorizedClientRepository(authorizedClientRepository())

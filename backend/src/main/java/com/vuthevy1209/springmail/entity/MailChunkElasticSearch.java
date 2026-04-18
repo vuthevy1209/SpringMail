@@ -36,7 +36,7 @@ public class MailChunkElasticSearch {
     private Integer chunkIndex;
 
     @Field(type = FieldType.Dense_Vector, dims = 768)
-    private List<Double> contentVector;
+    private List<Float> contentVector;
     
     @Field(type = FieldType.Keyword)
     private Set<String> labelIds;

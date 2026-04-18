@@ -17,7 +17,7 @@ public class EmbeddingServiceFeignVersionImpl implements EmbeddingService {
     private final EmbeddingFeignClient embeddingFeignClient;
 
     @Override
-    public List<Double> embed(String text) {
+    public List<Float> embed(String text) {
         TextRequest request = TextRequest.builder()
                 .text(text)
                 .build();
@@ -26,7 +26,7 @@ public class EmbeddingServiceFeignVersionImpl implements EmbeddingService {
     }
 
     @Override
-    public List<List<Double>> embedBatch(List<String> texts) {
+    public List<List<Float>> embedBatch(List<String> texts) {
         BatchTextRequest request = BatchTextRequest.builder()
                 .texts(texts)
                 .build();

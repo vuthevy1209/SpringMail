@@ -46,14 +46,6 @@ public class MailController {
 				.build();
 	}
 
-	@GetMapping("/upcoming-events")
-	public ApiResponse<UpcomingEventsResponse> getUpcomingEvents() {
-		String userId = SecurityUtils.getCurrentOAuth2User().getAttribute("email");
-		return ApiResponse.<UpcomingEventsResponse>builder()
-				.result(mailAiService.extractUpcomingEvents(userId))
-				.build();
-	}
-
 	@GetMapping("/suggest")
 	public ApiResponse<List<String>> suggestSubjects(@RequestParam String keyword) {
 		return ApiResponse.<List<String>>builder()
