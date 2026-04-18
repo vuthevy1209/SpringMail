@@ -4,6 +4,8 @@ import com.vuthevy1209.springmail.dto.ai.AiDraftRequest;
 import com.vuthevy1209.springmail.dto.ai.AiDraftResponse;
 import com.vuthevy1209.springmail.dto.ai.AiSummaryRequest;
 import com.vuthevy1209.springmail.dto.ai.AiSummaryResponse;
+import com.vuthevy1209.springmail.dto.ai.UpcomingEventsResponse;
+import com.vuthevy1209.springmail.dto.ai.UpcomingEventsWithEmailsResponse;
 import com.vuthevy1209.springmail.service.mail.MailAiService;
 
 import lombok.RequiredArgsConstructor;
@@ -37,8 +39,8 @@ public class AIController {
     }
 
     @GetMapping("/upcoming-events")
-    public ResponseEntity<UpcomingEventsResponse> getUpcomingEvents() {
-        UpcomingEventsResponse response = mailAiService.extractUpcomingEvents();
+    public ResponseEntity<UpcomingEventsWithEmailsResponse> getUpcomingEvents() {
+        UpcomingEventsWithEmailsResponse response = mailAiService.extractUpcomingEvents();
         return ResponseEntity.ok(response);
     }
 }

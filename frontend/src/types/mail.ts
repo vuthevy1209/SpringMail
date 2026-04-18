@@ -38,9 +38,14 @@ export interface Thread {
     id: string;
     snippet: string;
     historyId: string;
-    messages?: Message[];
+    subject?: string;
+    senderNames?: string[];
+    messageCount?: number;
+    internalDate?: number;
+    lastMessageTimestamp?: number;
     unread?: boolean;
-    lastMessageTimestamp?: string;
+    labelIds?: string[];
+    messages?: Message[];
 }
 
 export interface ThreadPageResponse {

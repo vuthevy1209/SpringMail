@@ -7,18 +7,24 @@ import com.vuthevy1209.springmail.repository.MailChunkElasticSearchRepository;
 import com.vuthevy1209.springmail.service.cache.RedisCacheService;
 import com.vuthevy1209.springmail.service.embedding.EmbeddingService;
 import com.vuthevy1209.springmail.service.mail.MailAiService;
+import com.vuthevy1209.springmail.service.mail.MailService;
 import com.vuthevy1209.springmail.utils.SecurityUtils;
+import com.vuthevy1209.springmail.dto.mail.response.MailThreadResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vuthevy1209.springmail.dto.ai.UpcomingEventsResponse;
+import com.vuthevy1209.springmail.dto.ai.UpcomingEventsWithEmailsResponse;
 
 @Slf4j
 @Service
@@ -28,6 +34,7 @@ public class MailAiServiceImpl implements MailAiService {
     private final ChatClient chatClient;
     private final RedisCacheService redisCacheService;
     private final EmbeddingService embeddingService;
+    private final MailService mailService;
 
     private final MailChunkElasticSearchRepository mailChunkElasticSearchRepository;
 
@@ -111,8 +118,12 @@ public class MailAiServiceImpl implements MailAiService {
     }
 
     @Override
-    public UpcomingEventsResponse extractUpcomingEvents() {
-        String userId = "118026135008790142027";
+    public UpcomingEventsWithEmailsResponse extractUpcomingEvents() {
+        String userId = SecurityUtils.getAuthenticatedUserId();
+        if (userId == null) {
+            throw new RuntimeException("Current user not found");
+        }
+
         String cacheKey = "email:upcoming_events:" + userId;
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -122,7 +133,7 @@ public class MailAiServiceImpl implements MailAiService {
         if (cachedEventsStr != null) {
             log.info("Return upcoming events from Redis cache for userId: {}", userId);
             try {
-                return objectMapper.readValue(cachedEventsStr, UpcomingEventsResponse.class);
+                return objectMapper.readValue(cachedEventsStr, UpcomingEventsWithEmailsResponse.class);
             } catch (Exception e) {
                 log.error("Failed to parse cached upcoming events: {}", e.getMessage());
             }
@@ -143,9 +154,12 @@ public class MailAiServiceImpl implements MailAiService {
                 "- title: Tên hoặc tiêu đề của sự kiện (ngắn gọn, rõ ý).\n" +
                 "- datetime: Thời gian diễn ra sự kiện (ngày, giờ). Hãy trích xuất chính xác theo những gì được đề cập trong email.\n" +
                 "- location: Địa điểm diễn ra sự kiện (ghi rõ tên địa điểm, địa chỉ, hoặc link meeting nếu là sự kiện online).\n" +
-                "- description: Mô tả ngắn gọn, chi tiết bổ sung hoặc các yêu cầu chuẩn bị cần thiết cho sự kiện.\n" +
+                "- description: Mô tả ngắn gọn,s chi tiết bổ sung hoặc các yêu cầu chuẩn bị cần thiết cho sự kiện.\n" +
                 "- status: Trạng thái của sự kiện (ví dụ: 'Upcoming', 'TENTATIVE', 'CONFIRMED').\n\n" +
-                "Ngoài ra, hãy cung cấp một đoạn phân tích tổng quan (vào trường rawAnalysis) tóm tắt nhanh về tình hình các sự kiện bạn tìm thấy hoặc lý do tại sao bạn trích xuất chúng.\n\n" +
+                "Ngoài ra, hãy cung cấp một đoạn phân tích tổng quan (vào trường summary) tóm tắt chuyên nghiệp về các sự kiện tìm thấy.\n" +
+                "Yêu cầu định dạng summary BẮT BUỘC bằng Markdown như sau:\n" +
+                "Hãy sử dụng bullet points để liệt kê các ý chính quan trọng nhất, " +
+                "in đậm các từ khóa, mốc thời gian, tên người, hoặc các chi tiết hành động cần lưu ý.\n\n" +
                 "Nội dung email:\n" + context;
 
         log.info("Call Gemini AI to extract upcoming events for userId: {}", userId);
@@ -155,14 +169,37 @@ public class MailAiServiceImpl implements MailAiService {
                 .call()
                 .entity(UpcomingEventsResponse.class);
 
+        List<MailThreadResponse> relatedThreads = new ArrayList<>();
+        Set<String> processedThreadIds = new HashSet<>();
+        
+        for (MailChunkElasticSearch chunk : mailChunkElasticSearchList) {
+            String tId = chunk.getThreadId();
+            if (tId != null && !processedThreadIds.contains(tId)) {
+                try {
+                    MailThreadResponse threadResponse = mailService.getThreadDetail(tId);
+                    if (threadResponse != null) {
+                        relatedThreads.add(threadResponse);
+                    }
+                    processedThreadIds.add(tId);
+                } catch (Exception e) {
+                    log.error("Failed to fetch thread detail for threadId {}: {}", tId, e.getMessage());
+                }
+            }
+        }
+
+        UpcomingEventsWithEmailsResponse finalResponse = UpcomingEventsWithEmailsResponse.builder()
+                .aiResult(response)
+                .relatedEmails(relatedThreads)
+                .build();
+
         // 3. Lưu vào Redis với thời gian sống (TTL) là 10 phút
         try {
-            String responseStr = objectMapper.writeValueAsString(response);
+            String responseStr = objectMapper.writeValueAsString(finalResponse);
             redisCacheService.cacheValue(cacheKey, responseStr, Duration.ofMinutes(10));
         } catch (Exception e) {
             log.error("Failed to cache upcoming events: {}", e.getMessage());
         }
 
-        return response;
+        return finalResponse;
     }
 }

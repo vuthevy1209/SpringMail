@@ -1,4 +1,6 @@
 import api from './api';
+import { Thread } from '../types/mail';
+
 
 export interface AiSummaryRequest {
     threadId: string;
@@ -29,8 +31,14 @@ export interface EventDto {
 
 export interface UpcomingEventsResponse {
     events: EventDto[];
-    rawAnalysis: string;
+    summary: string;
 }
+
+export interface UpcomingEventsWithEmailsResponse {
+    aiResult: UpcomingEventsResponse;
+    relatedEmails: Thread[];
+}
+
 
 export const aiService = {
     summarizeEmail: async (threadId: string, content: string): Promise<AiSummaryResponse> => {
@@ -48,8 +56,8 @@ export const aiService = {
         });
         return response.data;
     },
-    extractUpcomingEvents: async (): Promise<UpcomingEventsResponse> => {
-        const response = await api.get<UpcomingEventsResponse>('/ai/upcoming-events');
+    getUpcomingEvents: async (): Promise<UpcomingEventsWithEmailsResponse> => {
+        const response = await api.get<UpcomingEventsWithEmailsResponse>('/ai/upcoming-events');
         return response.data;
     }
 };

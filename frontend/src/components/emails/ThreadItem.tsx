@@ -2,7 +2,7 @@ import React from 'react';
 import { Thread } from '../../types/mail';
 
 interface ThreadItemProps {
-    thread: any; // Using any or an extended Thread type depending on if senderNames is added
+    thread: Thread;
     isSelected: boolean;
     onClick: () => void;
 }
