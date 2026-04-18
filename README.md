@@ -20,7 +20,7 @@
 
 - **Spring Boot 3.x** (Java 21, Spring AI, OAuth2)
 - **React 19** (TypeScript, Vite, Tailwind CSS)
-- **SBERT** (`paraphrase-multilingual-mpnet-base-v2`)
+- **SentenceTransformers** (SBERT: `paraphrase-multilingual-mpnet-base-v2`)
 - **Elasticsearch** (Hybrid Search Engine)
 - **MongoDB** (Primary Data)
 - **Redis** (Session & Caching)
@@ -34,6 +34,16 @@
 <p align="center">
   <img src="readme-img/overview.png" alt="Application Overview">
 </p>
+
+## System Architecture
+
+The system is built on **Spring Boot**, integrating with **Gmail API** and **Google OAuth2** for data synchronization. We use **MongoDB** for primary storage and **Redis** for stateful session management and caching. Searching is powered by **Elasticsearch** with a hybrid approach: traditional **Full-text search** and **Vector search** (using **SBERT** for text embedding).
+
+<p align="center">
+  <img src="readme-img/architecture.png" alt="SpringMail Architecture">
+</p>
+
+---
 
 ## Key Features
 
