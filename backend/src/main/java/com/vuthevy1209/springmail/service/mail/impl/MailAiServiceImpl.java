@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vuthevy1209.springmail.dto.ai.UpcomingEventsResponse;
 
 @Slf4j
@@ -112,6 +113,20 @@ public class MailAiServiceImpl implements MailAiService {
     @Override
     public UpcomingEventsResponse extractUpcomingEvents() {
         String userId = "118026135008790142027";
+        String cacheKey = "email:upcoming_events:" + userId;
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        // 1. Kiểm tra cache trong Redis
+        String cachedEventsStr = redisCacheService.getCachedValue(cacheKey);
+        if (cachedEventsStr != null) {
+            log.info("Return upcoming events from Redis cache for userId: {}", userId);
+            try {
+                return objectMapper.readValue(cachedEventsStr, UpcomingEventsResponse.class);
+            } catch (Exception e) {
+                log.error("Failed to parse cached upcoming events: {}", e.getMessage());
+            }
+        }
 
         String query = "Nội dung liên quan đến lịch hẹn như phỏng vấn, lịch kiểm tra, bài test, bạn bè rủ đi chơi, và có thời gian địa điểm rõ ràng";
         List<Float> contentVector = embeddingService.embed(query);
@@ -135,9 +150,19 @@ public class MailAiServiceImpl implements MailAiService {
 
         log.info("Call Gemini AI to extract upcoming events for userId: {}", userId);
 
-        return chatClient.prompt()
+        UpcomingEventsResponse response = chatClient.prompt()
                 .user(prompt)
                 .call()
                 .entity(UpcomingEventsResponse.class);
+
+        // 3. Lưu vào Redis với thời gian sống (TTL) là 10 phút
+        try {
+            String responseStr = objectMapper.writeValueAsString(response);
+            redisCacheService.cacheValue(cacheKey, responseStr, Duration.ofMinutes(10));
+        } catch (Exception e) {
+            log.error("Failed to cache upcoming events: {}", e.getMessage());
+        }
+
+        return response;
     }
 }
