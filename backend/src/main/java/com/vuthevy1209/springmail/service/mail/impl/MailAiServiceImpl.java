@@ -122,7 +122,22 @@ public class MailAiServiceImpl implements MailAiService {
                 .map(MailChunkElasticSearch::getChunkText)
                 .collect(Collectors.joining("\n\n"));
 
-        System.out.println(context);
-        return null;
+        String prompt = "Bạn là một trợ lý ảo phân tích dữ liệu chuyên nghiệp. Nhiệm vụ của bạn là đọc các đoạn nội dung email được cung cấp và trích xuất tất cả các sự kiện sắp diễn ra.\n\n" +
+                "Các sự kiện cần quan tâm: lịch phỏng vấn, lịch kiểm tra/bài test, cuộc hẹn công việc, lịch rủ đi chơi, hoặc bất kỳ sự kiện nào có đề cập đến thời gian và địa điểm rõ ràng.\n\n" +
+                "Với mỗi sự kiện, hãy trích xuất các thông tin sau để điền vào đối tượng EventDto:\n" +
+                "- title: Tên hoặc tiêu đề của sự kiện (ngắn gọn, rõ ý).\n" +
+                "- datetime: Thời gian diễn ra sự kiện (ngày, giờ). Hãy trích xuất chính xác theo những gì được đề cập trong email.\n" +
+                "- location: Địa điểm diễn ra sự kiện (ghi rõ tên địa điểm, địa chỉ, hoặc link meeting nếu là sự kiện online).\n" +
+                "- description: Mô tả ngắn gọn, chi tiết bổ sung hoặc các yêu cầu chuẩn bị cần thiết cho sự kiện.\n" +
+                "- status: Trạng thái của sự kiện (ví dụ: 'Upcoming', 'TENTATIVE', 'CONFIRMED').\n\n" +
+                "Ngoài ra, hãy cung cấp một đoạn phân tích tổng quan (vào trường rawAnalysis) tóm tắt nhanh về tình hình các sự kiện bạn tìm thấy hoặc lý do tại sao bạn trích xuất chúng.\n\n" +
+                "Nội dung email:\n" + context;
+
+        log.info("Call Gemini AI to extract upcoming events for userId: {}", userId);
+
+        return chatClient.prompt()
+                .user(prompt)
+                .call()
+                .entity(UpcomingEventsResponse.class);
     }
 }

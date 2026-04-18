@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class EventDto {
     private String title;
-    private String date; // Event date/time
+    private String datetime; // Event date/time
     private String location;
     private String description;
-    private String threadId;
+    private String status;
 }
