@@ -40,7 +40,7 @@
 The system is built on **Spring Boot**, integrating with **Gmail API** and **Google OAuth2** for data synchronization. We use **MongoDB** for primary storage and **Redis** for stateful session management and caching. Searching is powered by **Elasticsearch** with a hybrid approach: traditional **Full-text search** and **Vector search** (using **SBERT** for text embedding).
 
 <p align="center">
-  <img src="readme-img/architecture.png" alt="SpringMail Architecture">
+  <img src="readme-img/architecture.png" alt="SpringMail Architecture" width="70%">
 </p>
 
 ---
