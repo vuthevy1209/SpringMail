@@ -40,15 +40,22 @@
 ### 1. Smart Hybrid Search
 Leveraging the core power of **Elasticsearch** combined with the `paraphrase-multilingual-mpnet-base-v2` model from **SBERT**, we have built a comprehensive email search engine. By synchronizing **Full-text Search** and **Vector Search**, the system can process queries based on user intent rather than just character matching. It specifically offers optimized support for Vietnamese, enabling precise data retrieval based on **Semantic Similarity**, ultimately optimizing workflow efficiency and information management.
 
-<p align="center">
-  <img src="readme-img/Smart search combines full-text-search and vector-search (semantic-search) with elasticsearch.png" alt="Smart Search">
-</p>
+- **Hybrid Search Interface:** A seamless blend of traditional keyword matching and AI-powered semantic understanding.
+  <p align="center">
+    <img src="readme-img/Smart search combines full-text-search and vector-search (semantic-search) with elasticsearch.png" alt="Smart Search">
+  </p>
 
 ### 2. Automatic Event Grouping
 The application automatically analyzes and groups emails related to the same event, helping you track workflows more efficiently.
 
-![Aggregated Events](readme-img/aggregates%20events%20based%20on%20user%20mailboxes.png)
-![View Related Emails](readme-img/View%20emails%20related%20to%20events.png)
+- **Smart Event Aggregation:** Automatically identifies and categorizes emails belonging to the same project or event, allowing you to manage complex workloads with ease.
+  <p align="center">
+    <img src="readme-img/aggregates%20events%20based%20on%20user%20mailboxes.png" alt="Aggregated Events">
+  </p>
+- **Contextual Timeline:** Navigate through all communications related to a specific event in a unified view, ensuring no detail is ever lost.
+  <p align="center">
+    <img src="readme-img/View%20emails%20related%20to%20events.png" alt="View Related Emails">
+  </p>
 
 ### 3. Powerful AI Assistant
 
@@ -64,6 +71,8 @@ The application automatically analyzes and groups emails related to the same eve
 ### 4. Advanced Content Support (Markdown & HTML)
 Support for composing and sending emails using both **Markdown** and **HTML** formatting. Seamlessly handle rich content, embedded images, and attachments for a versatile communication experience.
 
-<p align="center">
-  <img src="readme-img/send-html-content.png" alt="Send HTML">
-</p>
+- **Markdown & HTML Editor:** Compose beautiful emails using Markdown and see the results instantly in a rich-text format.
+- **Rich Media Support:** Easily embed images and formatted attachments into your professional communications.
+  <p align="center">
+    <img src="readme-img/send-html-content.png" alt="Send HTML">
+  </p>
