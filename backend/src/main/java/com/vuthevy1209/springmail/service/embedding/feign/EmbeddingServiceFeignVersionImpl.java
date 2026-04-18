@@ -1,6 +1,7 @@
 package com.vuthevy1209.springmail.service.embedding.feign;
 
 import com.vuthevy1209.springmail.service.embedding.EmbeddingService;
+import com.vuthevy1209.springmail.service.embedding.dto.BatchTextRequest;
 import com.vuthevy1209.springmail.service.embedding.dto.TextRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
@@ -22,5 +23,14 @@ public class EmbeddingServiceFeignVersionImpl implements EmbeddingService {
                 .build();
 
         return embeddingFeignClient.embed(request);
+    }
+
+    @Override
+    public List<List<Double>> embedBatch(List<String> texts) {
+        BatchTextRequest request = BatchTextRequest.builder()
+                .texts(texts)
+                .build();
+
+        return embeddingFeignClient.embedBatch(request);
     }
 }

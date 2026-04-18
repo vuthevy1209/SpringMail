@@ -4,6 +4,7 @@ import com.vuthevy1209.springmail.converters.MailMessageConverter;
 import com.vuthevy1209.springmail.converters.MailThreadConverter;
 import com.vuthevy1209.springmail.dto.mail.request.FetchOlderRequest;
 import com.vuthevy1209.springmail.dto.mail.response.FetchOlderResponse;
+import com.vuthevy1209.springmail.entity.MailChunkElasticSearch;
 import com.vuthevy1209.springmail.entity.MailElasticSearch;
 import com.vuthevy1209.springmail.entity.MailMessage;
 import com.vuthevy1209.springmail.entity.MailThread;
@@ -12,6 +13,7 @@ import com.vuthevy1209.springmail.enums.MailLabel;
 import com.vuthevy1209.springmail.enums.SyncStatus;
 import com.vuthevy1209.springmail.exception.AppException;
 import com.vuthevy1209.springmail.exception.ErrorCode;
+import com.vuthevy1209.springmail.repository.MailChunkElasticSearchRepository;
 import com.vuthevy1209.springmail.repository.MailElasticSearchRepository;
 import com.vuthevy1209.springmail.repository.MailMessageRepository;
 import com.vuthevy1209.springmail.repository.MailThreadRepository;
@@ -35,6 +37,8 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.context.ApplicationEventPublisher;
+import com.vuthevy1209.springmail.event.SyncMailMessageEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
@@ -42,6 +46,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -55,15 +60,17 @@ public class MailSyncServiceImpl implements MailSyncService {
 	private final MailThreadRepository mailThreadRepository;
 	private final MailMessageRepository mailMessageRepository;
 	private final MailElasticSearchRepository mailElasticSearchRepository;
+	private final MailChunkElasticSearchRepository mailChunkElasticSearchRepository;
 
 
 	private final MailThreadConverter mailThreadConverter;
 	private final MailMessageConverter mailMessageConverter;
 
 	private final AuthorizedClientServiceOAuth2AuthorizedClientManager backgroundAuthorizedClientManager;
+	private final ApplicationEventPublisher applicationEventPublisher;
 
 	private final String FORMAT = "full";
-	private final Long QUANTITY_OF_THREAD_NEEDED_TO_SYNC = 200L;
+	private final Long QUANTITY_OF_THREAD_NEEDED_TO_SYNC = 50L;
 
 	@Override
 	public void syncMail(User user, String accessToken) throws IOException {
@@ -92,23 +99,30 @@ public class MailSyncServiceImpl implements MailSyncService {
 		GmailListThreadsResponseDto threadsResponse = gmailService.listThreads(accessToken, null,
 				QUANTITY_OF_THREAD_NEEDED_TO_SYNC, null);
 
-		int totalThreads = 0;
-		int syncedThreads = 0;
+		if (threadsResponse.getThreads() != null && !threadsResponse.getThreads().isEmpty()) {
+			List<GmailThreadDto> threads = threadsResponse.getThreads();
 
-		if (threadsResponse.getThreads() != null) {
-			totalThreads = threadsResponse.getThreads().size();
-			for (GmailThreadDto threadMetadata : threadsResponse.getThreads()) {
-				fetchAndProcessThread(user, accessToken, threadMetadata.getId());
-				syncedThreads++;
+			// Đếm tổng số message thực sự cần xử lý — mỗi thread có nhiều message
+			// Nếu chưa biết trước, dùng thread count để hiển thị progress fetch (tối đa 99%)
+			int totalThreads = threads.size();
+			List<CompletableFuture<Void>> allFutures = new ArrayList<>();
 
-				// Thỉnh thoảng update % xuống DB đỡ tải quá nặng (cữ 10 thread update 1 lần
-				// hoặc khi xong hết)
-				if (syncedThreads % 10 == 0 || syncedThreads == totalThreads) {
-					int percent = (int) Math.round((double) syncedThreads / totalThreads * 100);
+			for (int i = 0; i < totalThreads; i++) {
+				GmailThreadDto threadMetadata = threads.get(i);
+				List<CompletableFuture<Void>> threadFutures = fetchAndProcessThread(user, accessToken, threadMetadata.getId());
+				allFutures.addAll(threadFutures);
+
+				// Cập nhật progress theo số thread đã fetch (ở mức tối đa 99% để tránh set 100% sớm)
+				int fetchedThreads = i + 1;
+				if (fetchedThreads % 10 == 0 || fetchedThreads == totalThreads) {
+					int percent = Math.min(99, (int) Math.round((double) fetchedThreads / totalThreads * 99));
 					user.setInitialSyncProgress(percent);
 					userRepository.save(user);
 				}
 			}
+
+			// Chờ tất cả messages được xử lý xong thực sự (lưu xong MongoDB & ES)
+			CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[0])).join();
 		}
 
 		// Step 3: Update user state - save progress for pagination and anchor for
@@ -320,7 +334,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 		}
 	}
 
-    	private void fetchAndProcessThread(User user, String accessToken, String threadId) throws IOException {
+    	private List<CompletableFuture<Void>> fetchAndProcessThread(User user, String accessToken, String threadId) throws IOException {
 		// Fetch full thread details
 		GmailThreadDto fullThread = null;
 
@@ -331,19 +345,20 @@ public class MailSyncServiceImpl implements MailSyncService {
 				log.info("Thread {} not found in Gmail. Deleting locally.", threadId);
 				mailThreadRepository.deleteById(threadId);
 				mailMessageRepository.deleteByThreadId(threadId);
-				return;
+				return Collections.emptyList();
 			}
 			throw e;
 		}
 
 		if (fullThread == null || fullThread.getMessages() == null) {
-			return;
+			return Collections.emptyList();
 		}
 
 		String subject = null;
 		List<String> senderNames = new ArrayList<>();
 		int messageCount = 0;
 		Long lastMessageTimestamp = null;
+		List<CompletableFuture<Void>> futures = new ArrayList<>();
 
 		for (GmailMessageDto msg : fullThread.getMessages()) {
 			messageCount++;
@@ -357,16 +372,12 @@ public class MailSyncServiceImpl implements MailSyncService {
 				lastMessageTimestamp = msg.getInternalDate();
 			}
 
-			// save message to mongodb
+			// create entity and publish event to save to mongodb and elasticsearch asynchronously
 			MailMessage mailMessageEntity = mailMessageConverter.toMailMessage(msg);
 			mailMessageEntity.setUserId(user.getId());
-			mailMessageRepository.save(mailMessageEntity);
-
-			// save to elasticsearch (Temporarily using synchronous, will later switch to asynchronous)
-			if (!mailElasticSearchRepository.existsById(mailMessageEntity.getId())) {
-				MailElasticSearch mailElasticSearch = mailMessageConverter.toMailElasticSearch(mailMessageEntity);
-				mailElasticSearchRepository.save(mailElasticSearch);
-			}
+			SyncMailMessageEvent event = new SyncMailMessageEvent(this, mailMessageEntity);
+			applicationEventPublisher.publishEvent(event);
+			futures.add(event.getProcessingFuture());
 		}
 
 		Set<String> threadLabelIds = fullThread.getMessages().stream()
@@ -382,6 +393,8 @@ public class MailSyncServiceImpl implements MailSyncService {
 		mailThreadEntity.setMessageCount(messageCount);
 		mailThreadEntity.setLastMessageTimestamp(lastMessageTimestamp);
 		mailThreadRepository.save(mailThreadEntity);
+
+		return futures;
 	}
 
 }

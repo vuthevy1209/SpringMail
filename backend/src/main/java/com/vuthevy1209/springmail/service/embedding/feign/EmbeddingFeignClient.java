@@ -1,5 +1,6 @@
 package com.vuthevy1209.springmail.service.embedding.feign;
 
+import com.vuthevy1209.springmail.service.embedding.dto.BatchTextRequest;
 import com.vuthevy1209.springmail.service.embedding.dto.TextRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,4 +14,6 @@ public interface EmbeddingFeignClient {
     @PostMapping("/embed")
     List<Double> embed(@RequestBody TextRequest request);
 
+    @PostMapping("/embed/batch")
+    List<List<Double>> embedBatch(@RequestBody BatchTextRequest request);
 }

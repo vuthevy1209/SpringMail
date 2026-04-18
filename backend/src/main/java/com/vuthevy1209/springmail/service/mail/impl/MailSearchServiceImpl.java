@@ -49,36 +49,6 @@ public class MailSearchServiceImpl implements MailSearchService {
         return mailThreads.map(mailThreadConverter::toMailThreadResponse);
     }
 
-    @Override
-    public Page<MailThreadResponse> searchEmailsHybrid(String keyword, int page, int size) {
-        String userId = SecurityUtils.getAuthenticatedUserId();
-        if (userId == null) {
-            throw new RuntimeException("Current user not found");
-        }
-
-        try {
-            List<Double> vector = embeddingService.embed(keyword);
-            if (vector == null || vector.isEmpty()) {
-                log.warn("Embedding failed for keyword: {}, falling back to keyword search", keyword);
-                return searchEmails(keyword, page, size);
-            }
-
-            List<MailElasticSearch> results = mailElasticSearchRepository.searchHybrid(keyword, userId, vector);
-
-            List<String> threadIds = results.stream()
-                    .map(MailElasticSearch::getThreadId)
-                    .toList();
-
-            Pageable pageable = PageRequest.of(page, size);
-            Page<MailThread> mailThreads = mailThreadRepository.findByIdIn(threadIds, pageable);
-
-            // convert to mail thread response list.
-            return mailThreads.map(mailThreadConverter::toMailThreadResponse);
-        } catch (Exception e) {
-            throw new RuntimeException("The system is in error");
-        }
-    }
-
 
     @Override
     public List<String> suggestSubjects(String keyword) {

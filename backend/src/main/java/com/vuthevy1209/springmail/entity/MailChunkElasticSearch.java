@@ -14,36 +14,30 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Document(indexName = "emails")
-public class MailElasticSearch {
+@Document(indexName = "email_chunks")
+public class MailChunkElasticSearch {
 
     @Id
-    private String id; // email ID
+    private String id;
 
     @Field(type = FieldType.Keyword)
-    private String userId;
+    private String mailId;
 
     @Field(type = FieldType.Keyword)
     private String threadId;
 
-    @Field(type = FieldType.Text, analyzer = "standard", searchAnalyzer = "standard")
-    private String subject;
-
-    @Field(type = FieldType.Text, analyzer = "standard", searchAnalyzer = "standard")
-    private String snippet;
+    @Field(type = FieldType.Keyword)
+    private String userId;
 
     @Field(type = FieldType.Text, analyzer = "standard")
-    private String sender;
+    private String chunkText;
 
-    @Field(type = FieldType.Keyword)
-    private String senderEmail;
+    @Field(type = FieldType.Integer)
+    private Integer chunkIndex;
 
-    @Field(type = FieldType.Text, analyzer = "standard")
-    private String receiver;
-
-    @Field(type = FieldType.Keyword)
-    private String receiverEmail;
-
+    @Field(type = FieldType.Dense_Vector, dims = 768)
+    private List<Double> contentVector;
+    
     @Field(type = FieldType.Keyword)
     private Set<String> labelIds;
 
