@@ -47,6 +47,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
@@ -70,7 +71,9 @@ public class MailSyncServiceImpl implements MailSyncService {
 	private final ApplicationEventPublisher applicationEventPublisher;
 
 	private final String FORMAT = "full";
-	private final Long QUANTITY_OF_THREAD_NEEDED_TO_SYNC = 50L;
+	private final Long QUANTITY_OF_THREAD_NEEDED_TO_SYNC = 20L;
+	private final String INITIAL_SYNC_QUERY = MailLabel.toGmailQuery(MailLabel.INBOX.getId())
+			+ " " + MailLabel.toGmailQuery(MailLabel.CATEGORY_PERSONAL.getId());
 
 	@Override
 	public void syncMail(User user, String accessToken) throws IOException {
@@ -95,30 +98,32 @@ public class MailSyncServiceImpl implements MailSyncService {
 		GmailProfileDto profile = gmailService.getProfile(accessToken);
 		Long lastHistoryId = profile.getHistoryId();
 
-		// Step 2: Fetch the first page of threads
-		GmailListThreadsResponseDto threadsResponse = gmailService.listThreads(accessToken, null,
+		// Step 2: Fetch the first page of threads (chỉ lấy INBOX + CATEGORY_PERSONAL)
+		GmailListThreadsResponseDto threadsResponse = gmailService.listThreads(accessToken, INITIAL_SYNC_QUERY,
 				QUANTITY_OF_THREAD_NEEDED_TO_SYNC, null);
 
 		if (threadsResponse.getThreads() != null && !threadsResponse.getThreads().isEmpty()) {
 			List<GmailThreadDto> threads = threadsResponse.getThreads();
-
-			// Đếm tổng số message thực sự cần xử lý — mỗi thread có nhiều message
-			// Nếu chưa biết trước, dùng thread count để hiển thị progress fetch (tối đa 99%)
-			int totalThreads = threads.size();
 			List<CompletableFuture<Void>> allFutures = new ArrayList<>();
 
-			for (int i = 0; i < totalThreads; i++) {
-				GmailThreadDto threadMetadata = threads.get(i);
+			for (GmailThreadDto threadMetadata : threads) {
 				List<CompletableFuture<Void>> threadFutures = fetchAndProcessThread(user, accessToken, threadMetadata.getId());
 				allFutures.addAll(threadFutures);
+			}
 
-				// Cập nhật progress theo số thread đã fetch (ở mức tối đa 99% để tránh set 100% sớm)
-				int fetchedThreads = i + 1;
-				if (fetchedThreads % 10 == 0 || fetchedThreads == totalThreads) {
-					int percent = Math.min(99, (int) Math.round((double) fetchedThreads / totalThreads * 99));
-					user.setInitialSyncProgress(percent);
-					userRepository.save(user);
-				}
+			// Track progress dựa trên số message thực sự được xử lý xong (MongoDB & ES)
+			int totalMessages = allFutures.size();
+			AtomicInteger completedMessages = new AtomicInteger(0);
+
+			for (CompletableFuture<Void> future : allFutures) {
+				future.whenComplete((result, ex) -> {
+					int count = completedMessages.incrementAndGet();
+					if (count % 3 == 0 || count == totalMessages) {
+						int percent = Math.min(99, (int) Math.round((double) count / totalMessages * 99));
+						user.setInitialSyncProgress(percent);
+						userRepository.save(user);
+					}
+				});
 			}
 
 			// Chờ tất cả messages được xử lý xong thực sự (lưu xong MongoDB & ES)
@@ -136,8 +141,6 @@ public class MailSyncServiceImpl implements MailSyncService {
 		log.info("Initial sync completed for user {} with historyId {}", user.getEmail(), lastHistoryId);
 
 		// Ngay sau khi initial sync xong, gọi incremental sync một lần
-		// để bắt lại tất cả các email mới rơi xuống trong khoảng thời gian chạy vòng
-		// lặp Initial Sync
 		// (những webhooks bị bỏ qua vì status đang là INITIAL_SYNC_IN_PROGRESS)
 		log.info("Triggering follow-up incremental sync to catch up emails that arrived during initial sync...");
 		executeIncrementalSyncSequence(user, accessToken);
@@ -238,7 +241,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 				.orElseThrow(() -> new RuntimeException("User not found in database: " + email));
 
 		// Chặn Fetch Older nếu đang trong quá trình đồng bộ lần đầu
-		if (user.getSyncStatus() == com.vuthevy1209.springmail.enums.SyncStatus.INITIAL_SYNC_IN_PROGRESS) {
+		if (user.getSyncStatus() == SyncStatus.INITIAL_SYNC_IN_PROGRESS) {
 			log.info("Initial sync in progress, blocking fetch-older for user {}", email);
 			return FetchOlderResponse.builder()
 					.fetchedCount(0)
@@ -334,7 +337,7 @@ public class MailSyncServiceImpl implements MailSyncService {
 		}
 	}
 
-    	private List<CompletableFuture<Void>> fetchAndProcessThread(User user, String accessToken, String threadId) throws IOException {
+    private List<CompletableFuture<Void>> fetchAndProcessThread(User user, String accessToken, String threadId) throws IOException {
 		// Fetch full thread details
 		GmailThreadDto fullThread = null;
 
