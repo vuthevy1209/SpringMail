@@ -24,7 +24,7 @@ public class DotEnvEnvironmentPostProcessor implements EnvironmentPostProcessor,
 
     private static final DeferredLog log = new DeferredLog();
     private static final String PROPERTY_SOURCE_NAME = "dotenvProperties";
-    private static final String[] SEARCH_PATHS = { ".env", "../.env" };
+    private static final String[] SEARCH_PATHS = {".env", "../.env" };
 
     @Override
     public void onApplicationEvent(ApplicationEvent event) {

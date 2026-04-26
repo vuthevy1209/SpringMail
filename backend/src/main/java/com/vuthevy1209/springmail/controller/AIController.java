@@ -4,7 +4,6 @@ import com.vuthevy1209.springmail.dto.ai.AiDraftRequest;
 import com.vuthevy1209.springmail.dto.ai.AiDraftResponse;
 import com.vuthevy1209.springmail.dto.ai.AiSummaryRequest;
 import com.vuthevy1209.springmail.dto.ai.AiSummaryResponse;
-import com.vuthevy1209.springmail.dto.ai.UpcomingEventsResponse;
 import com.vuthevy1209.springmail.dto.ai.UpcomingEventsWithEmailsResponse;
 import com.vuthevy1209.springmail.service.mail.MailAiService;
 
@@ -15,9 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import com.vuthevy1209.springmail.dto.ai.UpcomingEventsResponse;
 
 @RestController
 @RequestMapping("/ai")

@@ -27,6 +27,34 @@
 
 ---
 
+## Embedding Service (SBERT)
+
+The embedding service is a small FastAPI app that serves SBERT vectors for semantic search.
+
+### Run locally (macOS, Python 3.9+)
+
+```bash
+cd embedding-service
+python3 -m venv .venv
+source .venv/bin/activate
+pip install fastapi uvicorn sentence-transformers
+uvicorn sbrert:app --host 0.0.0.0 --port 8001
+```
+
+### Test
+
+```bash
+curl -X POST http://localhost:8001/embed \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Hello world"}'
+```
+
+Notes:
+- First run will download the model `paraphrase-multilingual-mpnet-base-v2`.
+- If you hit a missing `torch` error, install it: `pip install torch`.
+
+---
+
 ## Application Overview
 
 **SpringMail** is a modern email management platform that provides all the features of a traditional email application, empowered by the integration of **Large Language Models (LLMs)**. The application optimizes user workflows through intelligent summarization, smart responses, and deep semantic search.
