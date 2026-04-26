@@ -37,11 +37,8 @@ spring:
     username:
     password:
   ai:
-    model:
-      chat: ${SPRING_AI_MODEL_CHAT:google-genai}
-    google:
-      genai:
-        api-key: ${GOOGLE_GENAI_API_KEY}
-        chat:
-          options:
-            model: ${GOOGLE_GENAI_MODEL}
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: "qwen2.5:7b"
