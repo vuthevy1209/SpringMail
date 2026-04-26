@@ -8,7 +8,6 @@
     <img src="https://img.shields.io/badge/SPRING_AI-6DB33F?style=for-the-badge" alt="Spring AI" />
     <img src="https://img.shields.io/badge/REACT_19-61DAFB?style=for-the-badge" alt="React" />
     <img src="https://img.shields.io/badge/ELASTICSEARCH-005571?style=for-the-badge" alt="Elasticsearch" />
-    <img src="https://img.shields.io/badge/GOOGLE_GENAI-4285F4?style=for-the-badge" alt="Google GenAI" />
     <img src="https://img.shields.io/badge/SBERT-FF6F61?style=for-the-badge" alt="SBERT" />
     <img src="https://img.shields.io/badge/REDIS-FF4438?style=for-the-badge" alt="Redis" />
   </p>
@@ -18,12 +17,24 @@
 ---
 ## Tech Stack
 
-- **Spring Boot 3.x** (Java 21, Spring AI, OAuth2)
-- **React 19** (TypeScript, Vite, Tailwind CSS)
+- **Spring Framework** (Spring Boot, Spring Security, Spring Data, Spring AI, etc.)
+- **ReactJs** (TypeScript, Vite, Tailwind CSS)
+- **Third-party** (Google Cloud: OAuth2, Gmail API, Cloud Pub/Sub)
+- **LLM** (Ollama with Qwen2.5)
 - **SentenceTransformers** (SBERT: `paraphrase-multilingual-mpnet-base-v2`)
 - **Elasticsearch** (Hybrid Search Engine)
 - **MongoDB** (Primary Data)
 - **Redis** (Session & Caching)
+
+---
+
+## System Architecture
+
+The system is built on **Spring Boot**, integrating with **Gmail API** and **Google OAuth2** for data synchronization. Use **MongoDB** for primary storage and **Redis** for stateful session management and caching. Searching is powered by **Elasticsearch** with a hybrid approach: traditional **Full-text search** and **Vector search** (using **SBERT** for text embedding). Using **Ollama** with **Qwen2.5** model to implement AI features.
+
+<p align="center">
+  <img src="readme-img/architecture.png" alt="SpringMail Architecture" width="100%">
+</p>
 
 ---
 
@@ -33,14 +44,6 @@
 
 <p align="center">
   <img src="readme-img/overview.png" alt="Application Overview">
-</p>
-
-## System Architecture
-
-The system is built on **Spring Boot**, integrating with **Gmail API** and **Google OAuth2** for data synchronization. We use **MongoDB** for primary storage and **Redis** for stateful session management and caching. Searching is powered by **Elasticsearch** with a hybrid approach: traditional **Full-text search** and **Vector search** (using **SBERT** for text embedding).
-
-<p align="center">
-  <img src="readme-img/architecture.png" alt="SpringMail Architecture" width="100%">
 </p>
 
 ---
@@ -87,6 +90,7 @@ Support for composing and sending emails using both **Markdown** and **HTML** fo
     <img src="readme-img/send-html-content.png" alt="Send HTML">
   </p>
 
+---
 ## Embedding Service (SBERT)
 
 The embedding service is a small FastAPI app that serves SBERT vectors for semantic search.
